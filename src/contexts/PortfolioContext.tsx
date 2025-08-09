@@ -47,6 +47,7 @@ interface PortfolioContextType {
   harvestRewards: (poolIndex: number) => void;
   executeArbitrage: (oppIndex: number) => void;
   executeFlashLoan: (asset: string, amount: string, strategy: string) => void;
+  executeEnhancedArbitrage: (oppIndex: number, useFlashLoan: boolean, loanAmount: number) => void;
 }
 
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
@@ -225,6 +226,28 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     });
   };
 
+  const executeEnhancedArbitrage = (oppIndex: number, useFlashLoan: boolean, loanAmount: number) => {
+    const opp = arbitrageOpportunities[oppIndex];
+    
+    // Calculate enhanced profit with flash loan
+    const flashLoanFee = useFlashLoan ? loanAmount * 0.0009 : 0;
+    const baseProfit = opp.profitUsd;
+    const leveragedProfit = useFlashLoan ? (loanAmount * (opp.profit / 100)) : baseProfit;
+    const netProfit = leveragedProfit - flashLoanFee;
+    
+    // Remove the executed opportunity
+    setArbitrageOpportunities(prev => prev.filter((_, i) => i !== oppIndex));
+    
+    // Add profit to portfolio
+    setArbitrageProfit(prev => prev + netProfit);
+    setTotalValue(prev => prev + netProfit);
+    
+    toast({
+      title: useFlashLoan ? "Enhanced Arbitrage Executed!" : "Arbitrage Executed!",
+      description: `$${netProfit.toFixed(2)} net profit from ${opp.tokenPair} ${useFlashLoan ? 'flash loan arbitrage' : 'arbitrage'}`,
+    });
+  };
+
   const value = {
     totalValue,
     dailyChange,
@@ -240,6 +263,7 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     harvestRewards,
     executeArbitrage,
     executeFlashLoan,
+    executeEnhancedArbitrage,
   };
 
   return (

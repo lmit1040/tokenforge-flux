@@ -4,6 +4,7 @@ import { TokenMinting } from "@/components/TokenMinting";
 import { MiningSection } from "@/components/MiningSection";
 import { ArbitrageSection } from "@/components/ArbitrageSection";
 import { FlashLoansSection } from "@/components/FlashLoansSection";
+import { EnhancedArbitrager } from "@/components/EnhancedArbitrager";
 import { PortfolioProvider } from "@/contexts/PortfolioContext";
 
 const Index = () => {
@@ -34,6 +35,8 @@ const Index = () => {
             <ArbitrageSection />
             <FlashLoansSection />
           </div>
+          
+          <EnhancedArbitrager />
         </main>
       </div>
     </PortfolioProvider>
