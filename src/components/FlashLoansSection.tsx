@@ -7,11 +7,22 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Zap, DollarSign, AlertTriangle, Clock, TrendingUp } from "lucide-react";
 import { useState } from "react";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 
 export const FlashLoansSection = () => {
+  const { executeFlashLoan } = usePortfolio();
   const [loanAmount, setLoanAmount] = useState("");
   const [selectedAsset, setSelectedAsset] = useState("ETH");
   const [strategy, setStrategy] = useState("");
+
+  const handleExecuteFlashLoan = () => {
+    if (loanAmount && selectedAsset && strategy) {
+      executeFlashLoan(selectedAsset, loanAmount, strategy);
+      // Reset form
+      setLoanAmount("");
+      setStrategy("");
+    }
+  };
 
   const protocols = [
     { name: "Aave", fee: "0.09%", available: "150M", status: "Active" },
@@ -164,6 +175,7 @@ export const FlashLoansSection = () => {
           <Button 
             className="w-full gradient-primary text-primary-foreground hover:opacity-90 transition-opacity"
             disabled={!loanAmount || !selectedAsset || !strategy}
+            onClick={handleExecuteFlashLoan}
           >
             <DollarSign className="w-4 h-4 mr-2" />
             Execute Flash Loan

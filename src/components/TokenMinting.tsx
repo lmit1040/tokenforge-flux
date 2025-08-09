@@ -6,12 +6,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Coins, Sparkles, Shield, Info } from "lucide-react";
 import { useState } from "react";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 
 export const TokenMinting = () => {
+  const { mintToken } = usePortfolio();
   const [tokenStandard, setTokenStandard] = useState("ERC20");
   const [tokenName, setTokenName] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState("");
   const [totalSupply, setTotalSupply] = useState("");
+
+  const handleMintToken = () => {
+    if (tokenName && tokenSymbol && totalSupply) {
+      mintToken(tokenName, tokenSymbol, totalSupply, tokenStandard);
+      // Reset form
+      setTokenName("");
+      setTokenSymbol("");
+      setTotalSupply("");
+    }
+  };
 
   return (
     <section id="mint">
@@ -117,6 +129,7 @@ export const TokenMinting = () => {
           <Button 
             className="w-full gradient-primary text-primary-foreground hover:opacity-90 transition-opacity"
             disabled={!tokenName || !tokenSymbol || !totalSupply}
+            onClick={handleMintToken}
           >
             <Coins className="w-4 h-4 mr-2" />
             Deploy Token Contract

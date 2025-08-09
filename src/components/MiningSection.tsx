@@ -3,37 +3,28 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Pickaxe, TrendingUp, Clock, Zap } from "lucide-react";
+import { usePortfolio } from "@/contexts/PortfolioContext";
+import { useState } from "react";
 
 export const MiningSection = () => {
-  const miningPools = [
-    {
-      name: "ETH/USDC LP",
-      apy: 24.5,
-      tvl: 125000000,
-      rewards: ["ETH", "USDC", "COMP"],
-      userStake: 15000,
-      earned: 247.89,
-      progress: 68
-    },
-    {
-      name: "LINK Staking",
-      apy: 18.2,
-      tvl: 89000000,
-      rewards: ["LINK"],
-      userStake: 8500,
-      earned: 156.32,
-      progress: 45
-    },
-    {
-      name: "Yield Farming",
-      apy: 31.8,
-      tvl: 45000000,
-      rewards: ["FARM", "ETH"],
-      userStake: 5200,
-      earned: 89.45,
-      progress: 23
+  const { miningPools, stakeInPool, harvestRewards } = usePortfolio();
+  const [stakeAmounts, setStakeAmounts] = useState<{ [key: number]: string }>({});
+
+  const totalStaked = miningPools.reduce((sum, pool) => sum + pool.userStake, 0);
+  const totalEarned = miningPools.reduce((sum, pool) => sum + pool.earned, 0);
+  const avgAPY = miningPools.reduce((sum, pool) => sum + pool.apy, 0) / miningPools.length;
+
+  const handleStake = (poolIndex: number) => {
+    const amount = parseFloat(stakeAmounts[poolIndex] || "0");
+    if (amount > 0) {
+      stakeInPool(poolIndex, amount);
+      setStakeAmounts(prev => ({ ...prev, [poolIndex]: "" }));
     }
-  ];
+  };
+
+  const handleHarvest = (poolIndex: number) => {
+    harvestRewards(poolIndex);
+  };
 
   return (
     <section id="mine">
@@ -57,15 +48,15 @@ export const MiningSection = () => {
         <CardContent className="space-y-6">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-accent">$28.7K</div>
+              <div className="text-2xl font-bold text-accent">${(totalStaked / 1000).toFixed(1)}K</div>
               <div className="text-sm text-muted-foreground">Total Staked</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-primary">$493</div>
+              <div className="text-2xl font-bold text-primary">${totalEarned.toFixed(0)}</div>
               <div className="text-sm text-muted-foreground">Earned</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-warning">23.4%</div>
+              <div className="text-2xl font-bold text-warning">{avgAPY.toFixed(1)}%</div>
               <div className="text-sm text-muted-foreground">Avg APY</div>
             </div>
           </div>
@@ -109,13 +100,33 @@ export const MiningSection = () => {
                   </div>
                 </div>
 
-                <div className="flex space-x-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    Harvest
-                  </Button>
-                  <Button variant="secondary" size="sm" className="flex-1">
-                    Add Stake
-                  </Button>
+                <div className="space-y-2">
+                  <div className="flex space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex-1"
+                      onClick={() => handleHarvest(index)}
+                      disabled={pool.earned === 0}
+                    >
+                      Harvest
+                    </Button>
+                    <input
+                      type="number"
+                      placeholder="Amount"
+                      className="flex-1 px-2 py-1 text-sm border rounded"
+                      value={stakeAmounts[index] || ""}
+                      onChange={(e) => setStakeAmounts(prev => ({ ...prev, [index]: e.target.value }))}
+                    />
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={() => handleStake(index)}
+                      disabled={!stakeAmounts[index] || parseFloat(stakeAmounts[index]) <= 0}
+                    >
+                      Stake
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

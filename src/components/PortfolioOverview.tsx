@@ -2,18 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Wallet, Coins, Activity, Zap } from "lucide-react";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 
 export const PortfolioOverview = () => {
-  const portfolioData = {
-    totalValue: 125847.32,
-    dailyChange: 5.67,
-    dailyChangePercent: 4.73,
-    positions: [
-      { symbol: "ETH", balance: 45.23, value: 87654.21, change: 3.45 },
-      { symbol: "USDC", balance: 25000, value: 25000, change: 0 },
-      { symbol: "LINK", balance: 1250, value: 13193.11, change: -2.1 }
-    ]
-  };
+  const { totalValue, dailyChange, dailyChangePercent, positions, activePositions, yieldEarned, arbitrageProfit } = usePortfolio();
 
   return (
     <section id="portfolio" className="space-y-6">
@@ -29,11 +21,11 @@ export const PortfolioOverview = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">
-              ${portfolioData.totalValue.toLocaleString()}
+              ${totalValue.toLocaleString()}
             </div>
-            <div className={`flex items-center text-sm mt-2 ${portfolioData.dailyChange >= 0 ? 'text-accent' : 'text-destructive'}`}>
-              {portfolioData.dailyChange >= 0 ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
-              ${Math.abs(portfolioData.dailyChange).toFixed(2)} ({Math.abs(portfolioData.dailyChangePercent).toFixed(2)}%)
+            <div className={`flex items-center text-sm mt-2 ${dailyChange >= 0 ? 'text-accent' : 'text-destructive'}`}>
+              {dailyChange >= 0 ? <TrendingUp className="w-4 h-4 mr-1" /> : <TrendingDown className="w-4 h-4 mr-1" />}
+              ${Math.abs(dailyChange).toFixed(2)} ({Math.abs(dailyChangePercent).toFixed(2)}%)
             </div>
           </CardContent>
         </Card>
@@ -46,7 +38,7 @@ export const PortfolioOverview = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-foreground">12</div>
+            <div className="text-3xl font-bold text-foreground">{activePositions}</div>
             <div className="text-sm text-muted-foreground mt-2">
               Across 8 protocols
             </div>
@@ -61,7 +53,7 @@ export const PortfolioOverview = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-accent">$3,247</div>
+            <div className="text-3xl font-bold text-accent">${yieldEarned.toLocaleString()}</div>
             <div className="text-sm text-muted-foreground mt-2">
               This month
             </div>
@@ -76,7 +68,7 @@ export const PortfolioOverview = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-primary">$892</div>
+            <div className="text-3xl font-bold text-primary">${arbitrageProfit.toLocaleString()}</div>
             <div className="text-sm text-muted-foreground mt-2">
               Last 24h
             </div>
@@ -91,7 +83,7 @@ export const PortfolioOverview = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {portfolioData.positions.map((position) => (
+            {positions.map((position) => (
               <div key={position.symbol} className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center">

@@ -2,43 +2,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRightLeft, Target, TrendingUp, AlertCircle, Zap } from "lucide-react";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 
 export const ArbitrageSection = () => {
-  const opportunities = [
-    {
-      tokenPair: "ETH/USDC",
-      exchange1: "Uniswap V3",
-      exchange2: "SushiSwap",
-      price1: 2847.32,
-      price2: 2851.89,
-      profit: 0.16,
-      profitUsd: 456.78,
-      confidence: "High",
-      timeLeft: "4m 23s"
-    },
-    {
-      tokenPair: "LINK/ETH",
-      exchange1: "Balancer",
-      exchange2: "1inch",
-      price1: 0.00521,
-      price2: 0.00527,
-      profit: 1.15,
-      profitUsd: 234.56,
-      confidence: "Medium",
-      timeLeft: "7m 45s"
-    },
-    {
-      tokenPair: "UNI/USDT",
-      exchange1: "Curve",
-      exchange2: "Uniswap V2",
-      price1: 12.45,
-      price2: 12.62,
-      profit: 1.37,
-      profitUsd: 189.23,
-      confidence: "High",
-      timeLeft: "2m 11s"
-    }
-  ];
+  const { arbitrageOpportunities, executeArbitrage, arbitrageProfit } = usePortfolio();
+
+  const handleExecuteTrade = (index: number) => {
+    executeArbitrage(index);
+  };
 
   return (
     <section id="arbitrage">
@@ -62,11 +33,11 @@ export const ArbitrageSection = () => {
         <CardContent className="space-y-6">
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-primary">47</div>
+              <div className="text-2xl font-bold text-primary">{arbitrageOpportunities.length}</div>
               <div className="text-sm text-muted-foreground">Active Opps</div>
             </div>
             <div>
-              <div className="text-2xl font-bold text-accent">$1.2K</div>
+              <div className="text-2xl font-bold text-accent">${arbitrageProfit.toFixed(0)}</div>
               <div className="text-sm text-muted-foreground">24h Profit</div>
             </div>
             <div>
@@ -83,7 +54,7 @@ export const ArbitrageSection = () => {
               </Button>
             </div>
 
-            {opportunities.map((opp, index) => (
+            {arbitrageOpportunities.map((opp, index) => (
               <div key={index} className="p-4 rounded-lg bg-secondary/50 space-y-3 hover:bg-secondary/70 transition-colors">
                 <div className="flex items-center justify-between">
                   <div>
@@ -126,6 +97,7 @@ export const ArbitrageSection = () => {
                   variant="outline" 
                   size="sm" 
                   className="w-full hover:gradient-primary hover:text-primary-foreground transition-all"
+                  onClick={() => handleExecuteTrade(index)}
                 >
                   <Zap className="w-4 h-4 mr-2" />
                   Execute Trade
