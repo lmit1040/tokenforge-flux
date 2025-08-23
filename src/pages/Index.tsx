@@ -9,6 +9,8 @@ import { FlashLoansSection } from "@/components/FlashLoansSection";
 import { EnhancedArbitrager } from "@/components/EnhancedArbitrager";
 import { WalletConnection } from "@/components/WalletConnection";
 import { PortfolioProvider } from "@/contexts/PortfolioContext";
+import { ExchangeProvider } from "@/hooks/useExchanges";
+import { ExchangePortfolioSection } from "@/components/ExchangePortfolioSection";
 import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
@@ -38,38 +40,42 @@ const Index = () => {
 
   return (
     <PortfolioProvider>
-      <div className="min-h-screen bg-background">
-        <Header />
-        
-        <main className="container mx-auto px-4 py-8 space-y-8">
-          <div className="text-center mb-12">
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              DeFi Protocol Suite
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Advanced token operations, arbitrage opportunities, and flash loan protocols 
-              supporting ERC20 and ERC3643 standards
-            </p>
-          </div>
+      <ExchangeProvider>
+        <div className="min-h-screen bg-background">
+          <Header />
+          
+          <main className="container mx-auto px-4 py-8 space-y-8">
+            <div className="text-center mb-12">
+              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                DeFi Protocol Suite
+              </h1>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                Advanced token operations, arbitrage opportunities, and flash loan protocols 
+                supporting ERC20 and ERC3643 standards
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            <PortfolioOverview />
-            <WalletConnection />
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <TokenMinting />
-            <MiningSection />
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <ArbitrageSection />
-            <FlashLoansSection />
-          </div>
-          
-          <EnhancedArbitrager />
-        </main>
-      </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+              <PortfolioOverview />
+              <WalletConnection />
+            </div>
+            
+            <ExchangePortfolioSection />
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <TokenMinting />
+              <MiningSection />
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <ArbitrageSection />
+              <FlashLoansSection />
+            </div>
+            
+            <EnhancedArbitrager />
+          </main>
+        </div>
+      </ExchangeProvider>
     </PortfolioProvider>
   );
 };
