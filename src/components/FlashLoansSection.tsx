@@ -5,30 +5,72 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Zap, DollarSign, AlertTriangle, Clock, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { Zap, DollarSign, AlertTriangle, Clock, TrendingUp, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
 import { usePortfolio } from "@/contexts/PortfolioContext";
+import { useFlashLoans } from "@/hooks/useFlashLoans";
+import { useWallet } from "@/hooks/useWallet";
 
 export const FlashLoansSection = () => {
   const { executeFlashLoan } = usePortfolio();
+  const { isLoading, lastQuote, getFlashLoanQuote, executeFlashLoan: executeRealFlashLoan, getAvailableLiquidity } = useFlashLoans();
+  const { account, isConnected } = useWallet();
   const [loanAmount, setLoanAmount] = useState("");
   const [selectedAsset, setSelectedAsset] = useState("ETH");
   const [strategy, setStrategy] = useState("");
+  const [liquidity, setLiquidity] = useState<Record<string, any>>({});
 
-  const handleExecuteFlashLoan = () => {
+  useEffect(() => {
+    const loadLiquidity = async () => {
+      const assets = ['ETH', 'USDC', 'DAI'];
+      const liquidityData = {};
+      for (const asset of assets) {
+        liquidityData[asset] = await getAvailableLiquidity(asset);
+      }
+      setLiquidity(liquidityData);
+    };
+    loadLiquidity();
+  }, []);
+
+  const handleGetQuote = async () => {
     if (loanAmount && selectedAsset && strategy) {
-      executeFlashLoan(selectedAsset, loanAmount, strategy);
-      // Reset form
-      setLoanAmount("");
-      setStrategy("");
+      await getFlashLoanQuote(selectedAsset, loanAmount, strategy);
+    }
+  };
+
+  const handleExecuteFlashLoan = async () => {
+    if (loanAmount && selectedAsset && strategy && account) {
+      const result = await executeRealFlashLoan(selectedAsset, loanAmount, strategy, account);
+      if (result.success) {
+        executeFlashLoan(selectedAsset, loanAmount, strategy); // Update portfolio context
+        setLoanAmount("");
+        setStrategy("");
+      }
     }
   };
 
   const protocols = [
-    { name: "Aave", fee: "0.09%", available: "150M", status: "Active" },
-    { name: "dYdX", fee: "0.00%", available: "89M", status: "Active" },
-    { name: "Balancer", fee: "0.05%", available: "234M", status: "Active" },
-    { name: "Uniswap V3", fee: "0.30%", available: "445M", status: "Active" }
+    { 
+      name: "Aave V3", 
+      fee: "0.09%", 
+      available: liquidity.ETH ? `${(liquidity.ETH.available / 1000).toFixed(0)}K ETH` : "Loading...", 
+      status: "Active",
+      apy: liquidity.ETH?.apy || 0
+    },
+    { 
+      name: "Aave V3 USDC", 
+      fee: "0.09%", 
+      available: liquidity.USDC ? `${(liquidity.USDC.available / 1000000).toFixed(0)}M USDC` : "Loading...", 
+      status: "Active",
+      apy: liquidity.USDC?.apy || 0
+    },
+    { 
+      name: "Aave V3 DAI", 
+      fee: "0.09%", 
+      available: liquidity.DAI ? `${(liquidity.DAI.available / 1000000).toFixed(0)}M DAI` : "Loading...", 
+      status: "Active",
+      apy: liquidity.DAI?.apy || 0
+    }
   ];
 
   const strategies = [
@@ -131,6 +173,42 @@ export const FlashLoansSection = () => {
             </Select>
           </div>
 
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={handleGetQuote}
+              disabled={!loanAmount || !selectedAsset || !strategy || isLoading}
+              className="flex-1"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Get Live Quote
+            </Button>
+          </div>
+
+          {lastQuote && (
+            <div className="p-4 rounded-lg bg-accent/10 border border-accent/20 space-y-3">
+              <h4 className="font-medium text-accent">Live Flash Loan Quote</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Loan Amount:</span>
+                  <span className="font-medium">{lastQuote.amount} {lastQuote.asset}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Fee (0.09%):</span>
+                  <span className="font-medium">{lastQuote.fee.toFixed(4)} {lastQuote.asset}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Expected Profit:</span>
+                  <span className="font-medium text-accent">{lastQuote.expectedProfit.toFixed(4)} {lastQuote.asset}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Gas Estimate:</span>
+                  <span className="font-medium">{lastQuote.gasEstimate}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <Separator />
 
           <div className="space-y-4">
@@ -146,6 +224,7 @@ export const FlashLoansSection = () => {
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-medium">{protocol.fee} fee</div>
+                    <div className="text-xs text-muted-foreground">APY: {protocol.apy}%</div>
                     <Badge variant="outline" className="text-xs mt-1">
                       {protocol.status}
                     </Badge>
@@ -174,12 +253,18 @@ export const FlashLoansSection = () => {
 
           <Button 
             className="w-full gradient-primary text-primary-foreground hover:opacity-90 transition-opacity"
-            disabled={!loanAmount || !selectedAsset || !strategy}
+            disabled={!loanAmount || !selectedAsset || !strategy || !isConnected || isLoading}
             onClick={handleExecuteFlashLoan}
           >
             <DollarSign className="w-4 h-4 mr-2" />
-            Execute Flash Loan
+            {isLoading ? 'Executing...' : 'Execute Flash Loan'}
           </Button>
+
+          {!isConnected && (
+            <div className="text-center text-sm text-muted-foreground">
+              Connect your wallet to execute flash loans
+            </div>
+          )}
 
           <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
             <div className="flex items-start space-x-2">
