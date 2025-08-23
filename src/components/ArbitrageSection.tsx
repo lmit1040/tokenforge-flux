@@ -3,13 +3,43 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRightLeft, Target, TrendingUp, AlertCircle, Zap } from "lucide-react";
 import { usePortfolio } from "@/contexts/PortfolioContext";
+import { useToast } from "@/hooks/use-toast";
+import { useArbitrageQuotes } from "@/hooks/useArbitrageQuotes";
 
 export const ArbitrageSection = () => {
   const { arbitrageOpportunities, executeArbitrage, arbitrageProfit } = usePortfolio();
 
-  const handleExecuteTrade = (index: number) => {
-    executeArbitrage(index);
-  };
+const handleExecuteTrade = (index: number) => {
+  executeArbitrage(index);
+};
+
+const { getQuote } = useArbitrageQuotes();
+const { toast } = useToast();
+
+const handleLiveQuote = async (index: number) => {
+  try {
+    const opp = arbitrageOpportunities[index];
+    const [sellToken, buyToken] = opp.tokenPair.split('/');
+    const res = await getQuote({
+      sellToken,
+      buyToken,
+      amount: "0.1",
+      side: "sell",
+      chainId: 1,
+    });
+    if (res && res.ok && res.quote) {
+      const { price, sellAmountHuman, buyAmountHuman, estimatedGas } = res.quote as any;
+      toast({
+        title: "Live Quote",
+        description: `${sellAmountHuman} ${sellToken} -> ${buyAmountHuman} ${buyToken} @ ${price} | est. gas ${estimatedGas}`,
+      });
+    } else {
+      toast({ title: "No quote available", description: "Try again in a moment.", variant: "destructive" });
+    }
+  } catch (e: any) {
+    toast({ title: "Quote failed", description: e?.message ?? "Unknown error", variant: "destructive" });
+  }
+};
 
   return (
     <section id="arbitrage">
@@ -93,15 +123,25 @@ export const ArbitrageSection = () => {
                   </div>
                 </div>
 
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full hover:gradient-primary hover:text-primary-foreground transition-all"
-                  onClick={() => handleExecuteTrade(index)}
-                >
-                  <Zap className="w-4 h-4 mr-2" />
-                  Execute Trade
-                </Button>
+<div className="grid grid-cols-2 gap-2">
+  <Button 
+    variant="secondary" 
+    size="sm" 
+    className="w-full"
+    onClick={() => handleLiveQuote(index)}
+  >
+    Live Quote
+  </Button>
+  <Button 
+    variant="outline" 
+    size="sm" 
+    className="w-full hover:gradient-primary hover:text-primary-foreground transition-all"
+    onClick={() => handleExecuteTrade(index)}
+  >
+    <Zap className="w-4 h-4 mr-2" />
+    Execute Trade
+  </Button>
+</div>
               </div>
             ))}
           </div>
