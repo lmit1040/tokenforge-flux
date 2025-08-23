@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { usePriceFeeds } from '@/hooks/usePriceFeeds';
+import { useBlockchain } from '@/hooks/useBlockchain';
+import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 
 export interface Position {
@@ -61,6 +64,9 @@ export const usePortfolio = () => {
 };
 
 export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { prices } = usePriceFeeds();
+  const { deployToken, executeArbitrage: executeBlockchainArbitrage, executeFlashLoan: executeBlockchainFlashLoan, isConnected } = useBlockchain();
+  const { account } = useWallet();
   const { toast } = useToast();
   
   const [totalValue, setTotalValue] = useState(125847.32);
@@ -193,37 +199,79 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     });
   };
 
-  const executeArbitrage = (oppIndex: number) => {
+  const executeArbitrageOpportunity = async (oppIndex: number) => {
     const opp = arbitrageOpportunities[oppIndex];
     
-    // Remove the executed opportunity
-    setArbitrageOpportunities(prev => prev.filter((_, i) => i !== oppIndex));
-    
-    // Add profit to portfolio
-    setArbitrageProfit(prev => prev + opp.profitUsd);
-    setTotalValue(prev => prev + opp.profitUsd);
-    
-    toast({
-      title: "Arbitrage Executed!",
-      description: `$${opp.profitUsd} profit from ${opp.tokenPair} arbitrage`,
-    });
+    if (!isConnected) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet to execute arbitrage",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const txHash = await executeBlockchainArbitrage(
+        `0x${'A'.repeat(40)}`, // Mock token A address
+        `0x${'B'.repeat(40)}`, // Mock token B address
+        '1000' // Mock amount
+      );
+
+      if (txHash) {
+        // Remove the executed opportunity
+        setArbitrageOpportunities(prev => prev.filter((_, i) => i !== oppIndex));
+        
+        // Add profit to portfolio
+        setArbitrageProfit(prev => prev + opp.profitUsd);
+        setTotalValue(prev => prev + opp.profitUsd);
+        
+        toast({
+          title: "Arbitrage Executed!",
+          description: `$${opp.profitUsd} profit from ${opp.tokenPair} arbitrage`,
+        });
+      }
+    } catch (error) {
+      console.error('Arbitrage execution failed:', error);
+    }
   };
 
-  const executeFlashLoan = (asset: string, amount: string, strategy: string) => {
-    const loanAmount = parseFloat(amount);
-    const fee = loanAmount * 0.0009; // 0.09% fee
-    const minProfit = loanAmount * 0.001; // 0.1% min profit
-    const actualProfit = minProfit + (Math.random() * 0.02 * loanAmount); // Random profit
-    
-    const netProfit = actualProfit - fee;
-    
-    setTotalValue(prev => prev + netProfit);
-    setArbitrageProfit(prev => prev + netProfit);
-    
-    toast({
-      title: "Flash Loan Executed!",
-      description: `${strategy} strategy: $${netProfit.toFixed(2)} net profit`,
-    });
+  const executeFlashLoanOperation = async (asset: string, amount: string, strategy: string) => {
+    if (!isConnected) {
+      toast({
+        title: "Wallet not connected", 
+        description: "Please connect your wallet to execute flash loans",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const txHash = await executeBlockchainFlashLoan(
+        `0x${'C'.repeat(40)}`, // Mock asset address
+        amount,
+        { strategy }
+      );
+
+      if (txHash) {
+        const loanAmount = parseFloat(amount);
+        const fee = loanAmount * 0.0009; // 0.09% fee
+        const minProfit = loanAmount * 0.001; // 0.1% min profit
+        const actualProfit = minProfit + (Math.random() * 0.02 * loanAmount); // Random profit
+        
+        const netProfit = actualProfit - fee;
+        
+        setTotalValue(prev => prev + netProfit);
+        setArbitrageProfit(prev => prev + netProfit);
+        
+        toast({
+          title: "Flash Loan Executed!",
+          description: `${strategy} strategy: $${netProfit.toFixed(2)} net profit`,
+        });
+      }
+    } catch (error) {
+      console.error('Flash loan execution failed:', error);
+    }
   };
 
   const executeEnhancedArbitrage = (oppIndex: number, useFlashLoan: boolean, loanAmount: number) => {
@@ -261,8 +309,8 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     mintToken,
     stakeInPool,
     harvestRewards,
-    executeArbitrage,
-    executeFlashLoan,
+    executeArbitrage: executeArbitrageOpportunity,
+    executeFlashLoan: executeFlashLoanOperation,
     executeEnhancedArbitrage,
   };
 

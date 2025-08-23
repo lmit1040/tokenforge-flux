@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { PortfolioOverview } from "@/components/PortfolioOverview";
 import { TokenMinting } from "@/components/TokenMinting";
@@ -5,9 +7,35 @@ import { MiningSection } from "@/components/MiningSection";
 import { ArbitrageSection } from "@/components/ArbitrageSection";
 import { FlashLoansSection } from "@/components/FlashLoansSection";
 import { EnhancedArbitrager } from "@/components/EnhancedArbitrager";
+import { WalletConnection } from "@/components/WalletConnection";
 import { PortfolioProvider } from "@/contexts/PortfolioContext";
+import { useAuth } from "@/hooks/useAuth";
 
 const Index = () => {
+  const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Will redirect to auth
+  }
+
   return (
     <PortfolioProvider>
       <div className="min-h-screen bg-background">
@@ -24,7 +52,10 @@ const Index = () => {
             </p>
           </div>
 
-          <PortfolioOverview />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <PortfolioOverview />
+            <WalletConnection />
+          </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <TokenMinting />
