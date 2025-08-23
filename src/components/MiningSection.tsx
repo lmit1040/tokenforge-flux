@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Pickaxe, TrendingUp, Clock, Zap } from "lucide-react";
@@ -111,10 +112,10 @@ export const MiningSection = () => {
                     >
                       Harvest
                     </Button>
-                    <input
+                    <Input
                       type="number"
                       placeholder="Amount"
-                      className="flex-1 px-2 py-1 text-sm border rounded"
+                      className="flex-1"
                       value={stakeAmounts[index] || ""}
                       onChange={(e) => setStakeAmounts(prev => ({ ...prev, [index]: e.target.value }))}
                     />
