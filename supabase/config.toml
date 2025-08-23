@@ -58,3 +58,6 @@ verify_jwt = true
 
 [functions.arbitrage-execute]
 verify_jwt = true
+
+[functions.arbitrage-scanner]
+verify_jwt = false

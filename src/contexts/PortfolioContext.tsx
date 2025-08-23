@@ -3,6 +3,7 @@ import { usePriceFeeds } from '@/hooks/usePriceFeeds';
 import { useBlockchain } from '@/hooks/useBlockchain';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
+import { useArbitrageScanner } from '@/hooks/useArbitrageScanner';
 
 export interface Position {
   symbol: string;
@@ -68,6 +69,7 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
   const { deployToken, executeArbitrage: executeBlockchainArbitrage, executeFlashLoan: executeBlockchainFlashLoan, isConnected } = useBlockchain();
   const { account } = useWallet();
   const { toast } = useToast();
+  const { opportunities: liveOpportunities, isScanning } = useArbitrageScanner();
   
   const [totalValue, setTotalValue] = useState(125847.32);
   const [dailyChange, setDailyChange] = useState(5.67);
@@ -112,41 +114,8 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
   ]);
 
-  const [arbitrageOpportunities, setArbitrageOpportunities] = useState<ArbitrageOpportunity[]>([
-    {
-      tokenPair: "ETH/USDC",
-      exchange1: "Uniswap V3",
-      exchange2: "SushiSwap",
-      price1: 2847.32,
-      price2: 2851.89,
-      profit: 0.16,
-      profitUsd: 456.78,
-      confidence: "High",
-      timeLeft: "4m 23s"
-    },
-    {
-      tokenPair: "LINK/ETH",
-      exchange1: "Balancer",
-      exchange2: "1inch",
-      price1: 0.00521,
-      price2: 0.00527,
-      profit: 1.15,
-      profitUsd: 234.56,
-      confidence: "Medium",
-      timeLeft: "7m 45s"
-    },
-    {
-      tokenPair: "UNI/USDT",
-      exchange1: "Curve",
-      exchange2: "Uniswap V2",
-      price1: 12.45,
-      price2: 12.62,
-      profit: 1.37,
-      profitUsd: 189.23,
-      confidence: "High",
-      timeLeft: "2m 11s"
-    }
-  ]);
+  // Use live opportunities from scanner, fallback to empty array
+  const arbitrageOpportunities = liveOpportunities;
 
   const mintToken = (name: string, symbol: string, supply: string, standard: string) => {
     const newValue = parseFloat(supply) * 0.001; // Mock value calculation
@@ -219,16 +188,13 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
       );
 
       if (txHash) {
-        // Remove the executed opportunity
-        setArbitrageOpportunities(prev => prev.filter((_, i) => i !== oppIndex));
-        
-        // Add profit to portfolio
+        // Add profit to portfolio (can't remove from live opportunities array)
         setArbitrageProfit(prev => prev + opp.profitUsd);
         setTotalValue(prev => prev + opp.profitUsd);
         
         toast({
           title: "Arbitrage Executed!",
-          description: `$${opp.profitUsd} profit from ${opp.tokenPair} arbitrage`,
+          description: `$${opp.profitUsd.toFixed(2)} profit from ${opp.tokenPair} arbitrage`,
         });
       }
     } catch (error) {
@@ -283,10 +249,7 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     const leveragedProfit = useFlashLoan ? (loanAmount * (opp.profit / 100)) : baseProfit;
     const netProfit = leveragedProfit - flashLoanFee;
     
-    // Remove the executed opportunity
-    setArbitrageOpportunities(prev => prev.filter((_, i) => i !== oppIndex));
-    
-    // Add profit to portfolio
+    // Add profit to portfolio (can't remove from live opportunities array)
     setArbitrageProfit(prev => prev + netProfit);
     setTotalValue(prev => prev + netProfit);
     
