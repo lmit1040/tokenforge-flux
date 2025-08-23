@@ -77,6 +77,89 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_connections: {
+        Row: {
+          api_key_encrypted: string
+          api_secret_encrypted: string
+          created_at: string
+          exchange_name: string
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key_encrypted: string
+          api_secret_encrypted: string
+          created_at?: string
+          exchange_name: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key_encrypted?: string
+          api_secret_encrypted?: string
+          created_at?: string
+          exchange_name?: string
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      external_balances: {
+        Row: {
+          available_balance: number
+          balance: number
+          created_at: string
+          exchange_connection_id: string
+          id: string
+          last_updated: string
+          locked_balance: number
+          symbol: string
+          usd_value: number
+          user_id: string
+        }
+        Insert: {
+          available_balance?: number
+          balance?: number
+          created_at?: string
+          exchange_connection_id: string
+          id?: string
+          last_updated?: string
+          locked_balance?: number
+          symbol: string
+          usd_value?: number
+          user_id: string
+        }
+        Update: {
+          available_balance?: number
+          balance?: number
+          created_at?: string
+          exchange_connection_id?: string
+          id?: string
+          last_updated?: string
+          locked_balance?: number
+          symbol?: string
+          usd_value?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_balances_exchange_connection_id_fkey"
+            columns: ["exchange_connection_id"]
+            isOneToOne: false
+            referencedRelation: "exchange_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           account_type: string | null
