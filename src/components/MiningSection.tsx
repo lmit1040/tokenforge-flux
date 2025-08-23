@@ -6,10 +6,12 @@ import { Progress } from "@/components/ui/progress";
 import { Pickaxe, TrendingUp, Clock, Zap } from "lucide-react";
 import { usePortfolio } from "@/contexts/PortfolioContext";
 import { useState } from "react";
+import { useToast } from "@/components/ui/use-toast";
 
 export const MiningSection = () => {
   const { miningPools, stakeInPool, harvestRewards } = usePortfolio();
   const [stakeAmounts, setStakeAmounts] = useState<{ [key: number]: string }>({});
+  const { toast } = useToast();
 
   const totalStaked = miningPools.reduce((sum, pool) => sum + pool.userStake, 0);
   const totalEarned = miningPools.reduce((sum, pool) => sum + pool.earned, 0);
@@ -25,6 +27,13 @@ export const MiningSection = () => {
 
   const handleHarvest = (poolIndex: number) => {
     harvestRewards(poolIndex);
+  };
+
+  const handleExploreNewPools = () => {
+    toast({
+      title: "Discovering New Pools",
+      description: "Scanning for new high-yield opportunities...",
+    });
   };
 
   return (
@@ -133,7 +142,10 @@ export const MiningSection = () => {
             ))}
           </div>
 
-          <Button className="w-full gradient-accent text-accent-foreground hover:opacity-90 transition-opacity">
+          <Button 
+            className="w-full gradient-accent text-accent-foreground hover:opacity-90 transition-opacity"
+            onClick={handleExploreNewPools}
+          >
             <TrendingUp className="w-4 h-4 mr-2" />
             Explore New Pools
           </Button>
