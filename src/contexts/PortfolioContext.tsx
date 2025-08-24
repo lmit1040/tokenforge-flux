@@ -64,33 +64,22 @@ interface PortfolioContextType {
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
 
 export const usePortfolio = () => {
-  console.log('🎯 usePortfolio hook called');
   const context = useContext(PortfolioContext);
-  console.log('📦 usePortfolio context:', context);
   if (!context) {
-    console.error('❌ usePortfolio: context is undefined - component is not within PortfolioProvider');
     throw new Error('usePortfolio must be used within a PortfolioProvider');
   }
-  console.log('✅ usePortfolio: context found successfully');
   return context;
 };
 
 export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  console.log('🏗️ PortfolioProvider rendering');
-  
   const { prices } = usePriceFeeds();
   const { deployToken, executeArbitrage: executeBlockchainArbitrage, executeFlashLoan: executeBlockchainFlashLoan, executeStaking, isConnected } = useBlockchain();
   const { account } = useWallet();
   const { hasEnoughBalance, addStakedPosition, removeStakedPosition } = useTokenBalances();
   const { toast } = useToast();
-  const { opportunities: liveOpportunities, isScanning } = useArbitrageScanner();
-  const { pools: liveMiningPools = [] } = useMiningPools(); // Add default empty array
+  const { opportunities: liveOpportunities = [], isScanning } = useArbitrageScanner();
+  const { pools: liveMiningPools = [] } = useMiningPools();
   const { aaveSupply, aaveWithdraw } = useDefiProtocols();
-  
-  console.log('✅ PortfolioProvider hooks loaded successfully', { 
-    liveMiningPoolsCount: liveMiningPools?.length || 0,
-    liveOpportunitiesCount: liveOpportunities?.length || 0 
-  });
   
   const [totalValue, setTotalValue] = useState(125847.32);
   const [dailyChange, setDailyChange] = useState(5.67);
@@ -384,8 +373,6 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     executeEnhancedArbitrage,
   };
 
-  console.log('🎯 PortfolioProvider about to return context with value');
-  
   return (
     <PortfolioContext.Provider value={value}>
       {children}
