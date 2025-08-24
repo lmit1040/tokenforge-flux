@@ -29,10 +29,30 @@ export const WalletConnection = () => {
     const colors: Record<number, string> = {
       1: "bg-blue-500",
       137: "bg-purple-500",
-      56: "bg-yellow-500", 
+      56: "bg-yellow-500",
       43114: "bg-red-500"
     };
     return chainId ? colors[chainId] || "bg-gray-500" : "bg-gray-500";
+  };
+
+  const getNetworkCurrency = (chainId: number | null) => {
+    const symbols: Record<number, string> = {
+      1: "ETH",
+      137: "MATIC",
+      56: "BNB",
+      43114: "AVAX"
+    };
+    return chainId ? symbols[chainId] || "ETH" : "ETH";
+  };
+
+  const getExplorerUrl = (chainId: number | null) => {
+    const explorers: Record<number, string> = {
+      1: "https://etherscan.io/address/",
+      137: "https://polygonscan.com/address/",
+      56: "https://bscscan.com/address/",
+      43114: "https://snowtrace.io/address/"
+    };
+    return chainId ? explorers[chainId] || "https://etherscan.io/address/" : "https://etherscan.io/address/";
   };
 
   if (!isConnected) {
@@ -99,7 +119,7 @@ export const WalletConnection = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => window.open(`https://etherscan.io/address/${account}`, '_blank')}
+                onClick={() => window.open(`${getExplorerUrl(chainId)}${account}`, '_blank')}
                 className="p-1 h-auto"
               >
                 <ExternalLink className="w-3 h-3" />
@@ -117,7 +137,7 @@ export const WalletConnection = () => {
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Balance</span>
             <span className="text-sm font-mono">
-              {balance ? `${balance} ETH` : "Loading..."}
+              {balance ? `${balance} ${getNetworkCurrency(chainId)}` : "Loading..."}
             </span>
           </div>
         </div>
