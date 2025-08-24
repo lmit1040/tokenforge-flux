@@ -137,6 +137,9 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
       console.log('🔄 Chain changed to:', chainId);
       const newChainId = parseInt(chainId, 16);
+      console.log('🌐 New chain ID parsed:', newChainId);
+      
+      // Update chain ID first
       setChainId(newChainId);
 
       // Refresh account and balance for the new chain
@@ -144,9 +147,15 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
         if (accounts.length > 0) {
           const currentAccount = accounts[0];
+          console.log('🔄 Refreshing balance for account after chain change:', currentAccount);
           // Update account in case it's not in sync
           setAccount(currentAccount);
           await getBalance(currentAccount);
+          
+          toast({
+            title: "Network switched",
+            description: `Switched to ${SUPPORTED_NETWORKS[newChainId as keyof typeof SUPPORTED_NETWORKS]?.name || `Chain ${newChainId}`}`,
+          });
         }
       } catch (error) {
         console.error('❌ Error updating account after chain change:', error);
