@@ -50,6 +50,7 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
       // Listen for account changes
       window.ethereum.on('accountsChanged', (accounts: string[]) => {
+        console.log('🔄 Account changed:', accounts);
         if (accounts.length > 0) {
           setAccount(accounts[0]);
           getBalance(accounts[0]);
@@ -79,15 +80,17 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const getBalance = async (address: string) => {
+    console.log('💰 Getting balance for address:', address);
     try {
       const balance = await window.ethereum.request({
         method: 'eth_getBalance',
         params: [address, 'latest']
       });
       const balanceInEth = (parseInt(balance, 16) / Math.pow(10, 18)).toFixed(4);
+      console.log('💰 Balance received:', balanceInEth, 'ETH');
       setBalance(balanceInEth);
     } catch (error) {
-      console.error('Error getting balance:', error);
+      console.error('❌ Error getting balance:', error);
     }
   };
 

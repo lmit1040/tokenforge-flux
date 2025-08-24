@@ -89,20 +89,29 @@ export const useTokenBalances = () => {
   }, [stakedPositions]);
 
   const fetchBalances = useCallback(async () => {
+    console.log('🔄 fetchBalances called with:', { isConnected, account, chainId });
+    
     if (!isConnected || !account || !chainId) {
+      console.log('❌ Missing required data:', { isConnected, account, chainId });
       setBalances([]);
       return;
     }
 
     setIsLoading(true);
+    console.log('📡 Starting balance fetch for account:', account);
+    
     try {
       const tokenList = getAvailableTokens();
       const balancePromises: Promise<TokenBalance | null>[] = [];
 
       // Add native token (ETH/BNB/MATIC) balance
       const nativeSymbol = chainId === 1 ? 'ETH' : chainId === 56 ? 'BNB' : 'MATIC';
+      console.log('🪙 Getting native balance for:', nativeSymbol, 'ethBalance:', ethBalance);
+      
       const nativeBalanceCalc = calculateBalances(ethBalance || '0', nativeSymbol);
       const nativePrice = MOCK_PRICES[nativeSymbol] || 0;
+      
+      console.log('💰 Native balance calc:', nativeBalanceCalc);
       
       const nativeBalance: TokenBalance = {
         symbol: nativeSymbol,
@@ -152,10 +161,11 @@ export const useTokenBalances = () => {
       // Combine native and token balances, show all tokens even with 0 balance
       const allBalances = [nativeBalance, ...validBalances];
       
+      console.log('✅ Final balances:', allBalances);
       setBalances(allBalances);
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Error fetching token balances:', error);
+      console.error('❌ Error fetching token balances:', error);
     } finally {
       setIsLoading(false);
     }
