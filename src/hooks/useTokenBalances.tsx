@@ -169,7 +169,7 @@ export const useTokenBalances = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [account, chainId, isConnected, ethBalance, getTokenBalance, getAvailableTokens, calculateBalances]);
+  }, [isConnected, account, chainId, ethBalance, getTokenBalance, getAvailableTokens, calculateBalances]);
 
   const getBalance = useCallback((tokenSymbol: string): TokenBalance | null => {
     return balances.find(b => b.symbol === tokenSymbol) || null;
@@ -201,33 +201,17 @@ export const useTokenBalances = () => {
     fetchBalances();
   }, [fetchBalances]);
 
-  // Auto-refresh balances when wallet connects, account changes, or chain changes
+  // Simple effect that only triggers on account/chain changes
   useEffect(() => {
-    let isMounted = true;
-    console.log('🔄 useEffect triggered with:', { isConnected, account, chainId, ethBalance });
+    console.log('🔄 Token balances effect triggered:', { isConnected, account, chainId });
     
-    if (isConnected && account && isMounted) {
+    if (isConnected && account && chainId) {
       fetchBalances();
-      // Refresh every 30 seconds
-      const interval = setInterval(() => {
-        if (isMounted) {
-          fetchBalances();
-        }
-      }, 30000);
-      return () => {
-        isMounted = false;
-        clearInterval(interval);
-      };
     } else {
-      // Clear balances when disconnected
-      console.log('🧹 Clearing balances - wallet disconnected');
+      console.log('🧹 Clearing balances');
       setBalances([]);
     }
-    
-    return () => {
-      isMounted = false;
-    };
-  }, [isConnected, account, chainId]); // Removed ethBalance and fetchBalances
+  }, [account, chainId]); // Only depend on account and chainId
 
   return {
     balances,
