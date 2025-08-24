@@ -132,16 +132,24 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     // Chain change handler
-    const handleChainChanged = (chainId: string) => {
+    const handleChainChanged = async (chainId: string) => {
       if (!isActive) return;
-      
+
       console.log('🔄 Chain changed to:', chainId);
       const newChainId = parseInt(chainId, 16);
       setChainId(newChainId);
-      
-      // Refresh balance for current account on new chain
-      if (account) {
-        getBalance(account);
+
+      // Refresh account and balance for the new chain
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+          const currentAccount = accounts[0];
+          // Update account in case it's not in sync
+          setAccount(currentAccount);
+          await getBalance(currentAccount);
+        }
+      } catch (error) {
+        console.error('❌ Error updating account after chain change:', error);
       }
     };
 
