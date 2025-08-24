@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useArbitrageScanner } from '@/hooks/useArbitrageScanner';
 import { useMiningPools } from '@/hooks/useMiningPools';
 import { useTokenBalances } from '@/hooks/useTokenBalances';
+import { useDefiProtocols } from '@/hooks/useDefiProtocols';
 
 export interface Position {
   symbol: string;
@@ -22,6 +23,9 @@ export interface MiningPool {
   userStake: number;
   earned: number;
   progress: number;
+  protocol?: string;
+  chain?: string;
+  riskLevel?: string;
 }
 
 export interface ArbitrageOpportunity {
@@ -75,6 +79,7 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
   const { toast } = useToast();
   const { opportunities: liveOpportunities, isScanning } = useArbitrageScanner();
   const { pools: liveMiningPools } = useMiningPools();
+  const { aaveSupply, aaveWithdraw } = useDefiProtocols();
   
   const [totalValue, setTotalValue] = useState(125847.32);
   const [dailyChange, setDailyChange] = useState(5.67);
@@ -145,34 +150,39 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
 
     try {
-      // Mock contract addresses - in production these would be real addresses
-      const tokenAddress = `0x${'A'.repeat(40)}`;
-      const stakingContractAddress = `0x${'B'.repeat(40)}`;
-      
-      // Execute real staking transaction
-      const result = await executeStaking(
-        poolName,
-        tokenAddress,
-        amount.toString(),
-        stakingContractAddress
-      );
+      const pool = miningPools[poolIndex];
 
-      if (result && result.status === 'confirmed') {
-        // Only update local state after successful blockchain transaction
-        setUserStakes(prev => ({
-          ...prev,
-          [poolName]: {
-            stake: (prev[poolName]?.stake || 0) + amount,
-            earned: prev[poolName]?.earned || 0,
-            progress: Math.min((prev[poolName]?.progress || 0) + 10, 100)
-          }
-        }));
-        
-        // Add to staked positions to track balance deduction
-        addStakedPosition(token, amount, poolName);
-        
-        setTotalValue(prev => prev + amount);
+      if (pool.protocol && pool.protocol.toLowerCase().includes('aave')) {
+        const sym = (token as 'USDC' | 'WETH');
+        const txHash = await aaveSupply(sym, amount);
+        if (!txHash) return;
+      } else {
+        // Fallback to generic staking flow (simulated)
+        const tokenAddress = `0x${'A'.repeat(40)}`;
+        const stakingContractAddress = `0x${'B'.repeat(40)}`;
+        const result = await executeStaking(
+          poolName,
+          tokenAddress,
+          amount.toString(),
+          stakingContractAddress
+        );
+        if (!result || result.status !== 'confirmed') return;
       }
+
+      // Only update local state after successful transaction
+      setUserStakes(prev => ({
+        ...prev,
+        [poolName]: {
+          stake: (prev[poolName]?.stake || 0) + amount,
+          earned: prev[poolName]?.earned || 0,
+          progress: Math.min((prev[poolName]?.progress || 0) + 10, 100)
+        }
+      }));
+      
+      // Add to staked positions to track balance deduction
+      addStakedPosition(token, amount, poolName);
+      
+      setTotalValue(prev => prev + amount);
     } catch (error: any) {
       toast({
         title: "Staking failed",
@@ -195,8 +205,13 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
 
     try {
-      // In real implementation, this would call the unstaking contract function
-      // For now, simulate successful unstaking
+      const pool = miningPools[poolIndex];
+
+      if (pool.protocol && pool.protocol.toLowerCase().includes('aave')) {
+        const sym = (token as 'USDC' | 'WETH');
+        const txHash = await aaveWithdraw(sym, amount);
+        if (!txHash) return;
+      }
       
       setUserStakes(prev => ({
         ...prev,
