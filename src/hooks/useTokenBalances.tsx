@@ -202,6 +202,7 @@ export const useTokenBalances = () => {
 
   // Auto-refresh balances when wallet connects, account changes, or chain changes
   useEffect(() => {
+    console.log('🔄 useEffect triggered with:', { isConnected, account, chainId, ethBalance });
     if (isConnected && account) {
       fetchBalances();
       // Refresh every 30 seconds
@@ -209,9 +210,10 @@ export const useTokenBalances = () => {
       return () => clearInterval(interval);
     } else {
       // Clear balances when disconnected
+      console.log('🧹 Clearing balances - wallet disconnected');
       setBalances([]);
     }
-  }, [isConnected, account, chainId, fetchBalances]);
+  }, [isConnected, account, chainId, ethBalance]); // Removed fetchBalances to prevent infinite loop
 
   return {
     balances,
