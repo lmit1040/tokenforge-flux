@@ -11,6 +11,7 @@ import { PriceMonitor } from "@/components/PriceMonitor";
 import { WalletConnection } from "@/components/WalletConnection";
 import { WalletBalance } from "@/components/WalletBalance";
 import { PortfolioProvider } from "@/contexts/PortfolioContext";
+import { WalletProvider } from "@/hooks/useWallet";
 import { ExchangeProvider } from "@/hooks/useExchanges";
 import { ExchangePortfolioSection } from "@/components/ExchangePortfolioSection";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,53 +42,55 @@ const Index = () => {
   }
 
   return (
-    <PortfolioProvider>
-      <ExchangeProvider>
-        <div className="min-h-screen bg-background">
-          <Header />
-          
-          <main className="container mx-auto px-4 py-8 space-y-8">
-            <div className="text-center mb-12">
-              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                DeFi Protocol Suite
-              </h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Advanced token operations, arbitrage opportunities, and flash loan protocols 
-                supporting ERC20 and ERC3643 standards
-              </p>
-            </div>
+    <WalletProvider>
+      <PortfolioProvider>
+        <ExchangeProvider>
+          <div className="min-h-screen bg-background">
+            <Header />
+            
+            <main className="container mx-auto px-4 py-8 space-y-8">
+              <div className="text-center mb-12">
+                <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                  DeFi Protocol Suite
+                </h1>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                  Advanced token operations, arbitrage opportunities, and flash loan protocols 
+                  supporting ERC20 and ERC3643 standards
+                </p>
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-              <PortfolioOverview />
-              <WalletConnection />
-              <WalletBalance />
-            </div>
-            
-            <ExchangePortfolioSection />
-            
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              <div className="lg:col-span-3 space-y-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <TokenMinting />
-                  <MiningSection />
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <ArbitrageSection />
-                  <FlashLoansSection />
-                </div>
-                
-                <EnhancedArbitrager />
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+                <PortfolioOverview />
+                <WalletConnection />
+                <WalletBalance />
               </div>
               
-              <div className="space-y-8">
-                <PriceMonitor />
+              <ExchangePortfolioSection />
+              
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div className="lg:col-span-3 space-y-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <TokenMinting />
+                    <MiningSection />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <ArbitrageSection />
+                    <FlashLoansSection />
+                  </div>
+                  
+                  <EnhancedArbitrager />
+                </div>
+                
+                <div className="space-y-8">
+                  <PriceMonitor />
+                </div>
               </div>
-            </div>
-          </main>
-        </div>
-      </ExchangeProvider>
-    </PortfolioProvider>
+            </main>
+          </div>
+        </ExchangeProvider>
+      </PortfolioProvider>
+    </WalletProvider>
   );
 };
 
