@@ -48,7 +48,7 @@ interface PortfolioContextType {
   
   // Actions
   mintToken: (name: string, symbol: string, supply: string, standard: string) => void;
-  stakeInPool: (poolIndex: number, amount: number) => void;
+  stakeInPool: (poolIndex: number, amount: number, token?: string) => void;
   harvestRewards: (poolIndex: number) => void;
   executeArbitrage: (oppIndex: number) => void;
   executeFlashLoan: (asset: string, amount: string, strategy: string) => void;
@@ -118,8 +118,14 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     });
   };
 
-  const stakeInPool = (poolIndex: number, amount: number) => {
+  const stakeInPool = (poolIndex: number, amount: number, token: string = 'USDC') => {
     const poolName = miningPools[poolIndex].name;
+    
+    // In a real implementation, we would:
+    // 1. Call blockchain.approveToken() for the staking contract
+    // 2. Call the actual staking contract function
+    // 3. Wait for transaction confirmation
+    // 4. Update local state only after success
     
     setUserStakes(prev => ({
       ...prev,
@@ -134,7 +140,7 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     
     toast({
       title: "Stake Added Successfully!",
-      description: `$${amount.toLocaleString()} staked in ${poolName}`,
+      description: `${amount.toLocaleString()} ${token} staked in ${poolName}`,
     });
   };
 

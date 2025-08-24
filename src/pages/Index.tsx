@@ -9,6 +9,7 @@ import { FlashLoansSection } from "@/components/FlashLoansSection";
 import { EnhancedArbitrager } from "@/components/EnhancedArbitrager";
 import { PriceMonitor } from "@/components/PriceMonitor";
 import { WalletConnection } from "@/components/WalletConnection";
+import { WalletBalance } from "@/components/WalletBalance";
 import { PortfolioProvider } from "@/contexts/PortfolioContext";
 import { ExchangeProvider } from "@/hooks/useExchanges";
 import { ExchangePortfolioSection } from "@/components/ExchangePortfolioSection";
@@ -59,6 +60,7 @@ const Index = () => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
               <PortfolioOverview />
               <WalletConnection />
+              <WalletBalance />
             </div>
             
             <ExchangePortfolioSection />
