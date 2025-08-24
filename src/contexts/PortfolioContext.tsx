@@ -68,13 +68,30 @@ export const usePortfolio = () => {
 };
 
 export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  console.log('PortfolioProvider: Starting to render');
+  
   const { prices } = usePriceFeeds();
+  console.log('PortfolioProvider: usePriceFeeds working');
+  
   const { deployToken, executeArbitrage: executeBlockchainArbitrage, executeFlashLoan: executeBlockchainFlashLoan, executeStaking, isConnected } = useBlockchain();
+  console.log('PortfolioProvider: useBlockchain working');
+  
   const { account } = useWallet();
+  console.log('PortfolioProvider: useWallet working');
+  
   const { hasEnoughBalance, addStakedPosition, removeStakedPosition } = useTokenBalances();
+  console.log('PortfolioProvider: useTokenBalances working');
+  
   const { toast } = useToast();
+  console.log('PortfolioProvider: useToast working');
+  
   const { opportunities: liveOpportunities, isScanning } = useArbitrageScanner();
+  console.log('PortfolioProvider: useArbitrageScanner working');
+  
   const { pools: liveMiningPools } = useMiningPools();
+  console.log('PortfolioProvider: useMiningPools working');
+  
+  console.log('PortfolioProvider: All hooks loaded successfully');
   
   const [totalValue, setTotalValue] = useState(125847.32);
   const [dailyChange, setDailyChange] = useState(5.67);
