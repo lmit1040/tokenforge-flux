@@ -50,6 +50,7 @@ interface PortfolioContextType {
   // Actions
   mintToken: (name: string, symbol: string, supply: string, standard: string) => void;
   stakeInPool: (poolIndex: number, amount: number, token?: string) => void;
+  unstakeFromPool: (poolIndex: number, amount: number, token?: string) => void;
   harvestRewards: (poolIndex: number) => void;
   executeArbitrage: (oppIndex: number) => void;
   executeFlashLoan: (asset: string, amount: string, strategy: string) => void;
@@ -70,7 +71,7 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
   const { prices } = usePriceFeeds();
   const { deployToken, executeArbitrage: executeBlockchainArbitrage, executeFlashLoan: executeBlockchainFlashLoan, executeStaking, isConnected } = useBlockchain();
   const { account } = useWallet();
-  const { hasEnoughBalance } = useTokenBalances();
+  const { hasEnoughBalance, addStakedPosition, removeStakedPosition } = useTokenBalances();
   const { toast } = useToast();
   const { opportunities: liveOpportunities, isScanning } = useArbitrageScanner();
   const { pools: liveMiningPools } = useMiningPools();
@@ -167,12 +168,58 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
           }
         }));
         
+        // Add to staked positions to track balance deduction
+        addStakedPosition(token, amount, poolName);
+        
         setTotalValue(prev => prev + amount);
       }
     } catch (error: any) {
       toast({
         title: "Staking failed",
         description: error.message || "Failed to execute staking transaction",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const unstakeFromPool = async (poolIndex: number, amount: number, token: string = 'USDC') => {
+    const poolName = miningPools[poolIndex].name;
+    
+    if (!isConnected) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet to unstake tokens",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // In real implementation, this would call the unstaking contract function
+      // For now, simulate successful unstaking
+      
+      setUserStakes(prev => ({
+        ...prev,
+        [poolName]: {
+          stake: Math.max(0, (prev[poolName]?.stake || 0) - amount),
+          earned: prev[poolName]?.earned || 0,
+          progress: prev[poolName]?.progress || 0
+        }
+      }));
+      
+      // Remove from staked positions to return balance
+      removeStakedPosition(token, amount, poolName);
+      
+      setTotalValue(prev => prev - amount);
+      
+      toast({
+        title: "Unstaking successful!",
+        description: `${amount.toLocaleString()} ${token} unstaked from ${poolName}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Unstaking failed",
+        description: error.message || "Failed to unstake tokens",
         variant: "destructive"
       });
     }
@@ -304,6 +351,7 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     arbitrageOpportunities,
     mintToken,
     stakeInPool,
+    unstakeFromPool,
     harvestRewards,
     executeArbitrage: executeArbitrageOpportunity,
     executeFlashLoan: executeFlashLoanOperation,

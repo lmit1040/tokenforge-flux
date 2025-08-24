@@ -6,7 +6,7 @@ import { useTokenBalances } from "@/hooks/useTokenBalances";
 import { useWallet } from "@/hooks/useWallet";
 
 export const WalletBalance = () => {
-  const { balances, isLoading, lastUpdated, refreshBalances, totalValue } = useTokenBalances();
+  const { balances, isLoading, lastUpdated, refreshBalances, totalValue, totalStakedValue } = useTokenBalances();
   const { isConnected } = useWallet();
 
   if (!isConnected) {
@@ -54,14 +54,26 @@ export const WalletBalance = () => {
       </CardHeader>
       
       <CardContent className="space-y-4">
-        <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
-          <div className="flex items-center">
-            <TrendingUp className="w-4 h-4 mr-2 text-accent" />
-            <span className="font-medium">Total Value</span>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+            <div className="flex items-center">
+              <TrendingUp className="w-4 h-4 mr-2 text-accent" />
+              <span className="font-medium">Available Value</span>
+            </div>
+            <span className="text-lg font-bold text-accent">
+              ${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
           </div>
-          <span className="text-lg font-bold text-accent">
-            ${totalValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
+          
+          <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+            <div className="flex items-center">
+              <TrendingUp className="w-4 h-4 mr-2 text-primary" />
+              <span className="font-medium">Staked Value</span>
+            </div>
+            <span className="text-lg font-bold text-primary">
+              ${totalStakedValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
         </div>
 
         {isLoading ? (
@@ -74,7 +86,7 @@ export const WalletBalance = () => {
           </div>
         ) : (
           <div className="space-y-3">
-            {balances.map((token, index) => (
+            {balances.filter(token => parseFloat(token.balance) > 0 || parseFloat(token.stakedBalance) > 0).map((token, index) => (
               <div key={index} className="flex items-center justify-between p-3 bg-secondary/20 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
@@ -91,14 +103,24 @@ export const WalletBalance = () => {
                 </div>
                 
                 <div className="text-right">
-                  <div className="font-medium">
-                    {parseFloat(token.balance).toLocaleString(undefined, { 
-                      minimumFractionDigits: 0, 
-                      maximumFractionDigits: 4 
-                    })}
+                  <div className="space-y-1">
+                    <div className="font-medium">
+                      Available: {parseFloat(token.availableBalance).toLocaleString(undefined, { 
+                        minimumFractionDigits: 0, 
+                        maximumFractionDigits: 4 
+                      })}
+                    </div>
+                    {parseFloat(token.stakedBalance) > 0 && (
+                      <div className="text-sm text-primary">
+                        Staked: {parseFloat(token.stakedBalance).toLocaleString(undefined, { 
+                          minimumFractionDigits: 0, 
+                          maximumFractionDigits: 4 
+                        })}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    ${token.value.toLocaleString(undefined, { 
+                  <div className="text-sm text-muted-foreground mt-1">
+                    ${(token.value + token.stakedValue).toLocaleString(undefined, { 
                       minimumFractionDigits: 2, 
                       maximumFractionDigits: 2 
                     })}

@@ -10,11 +10,12 @@ import { useTokenBalances } from "@/hooks/useTokenBalances";
 import { useBlockchain } from "@/hooks/useBlockchain";
 import { useWallet } from "@/hooks/useWallet";
 import { TransactionStatus } from "@/components/TransactionStatus";
+import { UnstakeDialog } from "@/components/UnstakeDialog";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
 export const MiningSection = () => {
-  const { miningPools, stakeInPool, harvestRewards } = usePortfolio();
+  const { miningPools, stakeInPool, unstakeFromPool, harvestRewards } = usePortfolio();
   const { balances, hasEnoughBalance, getTokenBalance, isLoading: balancesLoading } = useTokenBalances();
   const { pendingTransactions, clearTransaction } = useBlockchain();
   const { isConnected } = useWallet();
@@ -173,6 +174,13 @@ export const MiningSection = () => {
                     >
                       Harvest
                     </Button>
+                    
+                    <UnstakeDialog
+                      poolName={pool.name}
+                      poolIndex={index}
+                      userStake={pool.userStake}
+                      onUnstake={unstakeFromPool}
+                    />
                   </div>
                   
                   <div className="flex space-x-2">
@@ -224,7 +232,12 @@ export const MiningSection = () => {
                       Available: {(() => {
                         const selectedToken = selectedTokens[index] || 'USDC';
                         const tokenBalance = getTokenBalance(selectedToken);
-                        return tokenBalance ? `${parseFloat(tokenBalance.balance).toFixed(4)} ${selectedToken}` : `0 ${selectedToken}`;
+                        return tokenBalance ? `${parseFloat(tokenBalance.availableBalance).toFixed(4)} ${selectedToken}` : `0 ${selectedToken}`;
+                      })()} | 
+                      Staked: {(() => {
+                        const selectedToken = selectedTokens[index] || 'USDC';
+                        const tokenBalance = getTokenBalance(selectedToken);
+                        return tokenBalance ? `${parseFloat(tokenBalance.stakedBalance).toFixed(4)} ${selectedToken}` : `0 ${selectedToken}`;
                       })()}
                     </div>
                   )}

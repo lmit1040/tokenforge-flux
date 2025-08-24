@@ -5,10 +5,19 @@ import { useBlockchain } from "./useBlockchain";
 interface TokenBalance {
   symbol: string;
   address: string;
-  balance: string;
+  balance: string; // Total balance (available + staked)
+  availableBalance: string; // Available for new stakes
+  stakedBalance: string; // Currently staked amount
   decimals: number;
   price: number;
   value: number;
+  stakedValue: number;
+}
+
+interface StakedPosition {
+  symbol: string;
+  amount: number;
+  poolName: string;
 }
 
 // Common token addresses for major networks
@@ -51,6 +60,7 @@ const MOCK_PRICES: { [symbol: string]: number } = {
 
 export const useTokenBalances = () => {
   const [balances, setBalances] = useState<TokenBalance[]>([]);
+  const [stakedPositions, setStakedPositions] = useState<StakedPosition[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
@@ -61,6 +71,22 @@ export const useTokenBalances = () => {
     if (!chainId || !TOKEN_ADDRESSES[chainId]) return [];
     return Object.entries(TOKEN_ADDRESSES[chainId]);
   }, [chainId]);
+
+  const calculateBalances = useCallback((totalBalance: string, symbol: string) => {
+    const stakedAmount = stakedPositions
+      .filter(pos => pos.symbol === symbol)
+      .reduce((sum, pos) => sum + pos.amount, 0);
+    
+    const total = parseFloat(totalBalance);
+    const staked = stakedAmount;
+    const available = Math.max(0, total - staked);
+    
+    return {
+      total: totalBalance,
+      available: available.toString(),
+      staked: staked.toString()
+    };
+  }, [stakedPositions]);
 
   const fetchBalances = useCallback(async () => {
     if (!isConnected || !account || !chainId) {
@@ -75,13 +101,19 @@ export const useTokenBalances = () => {
 
       // Add native token (ETH/BNB/MATIC) balance
       const nativeSymbol = chainId === 1 ? 'ETH' : chainId === 56 ? 'BNB' : 'MATIC';
+      const nativeBalanceCalc = calculateBalances(ethBalance || '0', nativeSymbol);
+      const nativePrice = MOCK_PRICES[nativeSymbol] || 0;
+      
       const nativeBalance: TokenBalance = {
         symbol: nativeSymbol,
         address: 'native',
-        balance: ethBalance || '0',
+        balance: nativeBalanceCalc.total,
+        availableBalance: nativeBalanceCalc.available,
+        stakedBalance: nativeBalanceCalc.staked,
         decimals: 18,
-        price: MOCK_PRICES[nativeSymbol] || 0,
-        value: parseFloat(ethBalance || '0') * (MOCK_PRICES[nativeSymbol] || 0)
+        price: nativePrice,
+        value: parseFloat(nativeBalanceCalc.available) * nativePrice,
+        stakedValue: parseFloat(nativeBalanceCalc.staked) * nativePrice
       };
 
       // Fetch token balances  
@@ -92,13 +124,18 @@ export const useTokenBalances = () => {
               const balance = await getTokenBalance(tokenInfo.address);
               if (balance && parseFloat(balance) > 0) {
                 const price = MOCK_PRICES[symbol] || 0;
+                const balanceCalc = calculateBalances(balance, symbol);
+                
                 return {
                   symbol,
                   address: tokenInfo.address,
-                  balance,
+                  balance: balanceCalc.total,
+                  availableBalance: balanceCalc.available,
+                  stakedBalance: balanceCalc.staked,
                   decimals: tokenInfo.decimals,
                   price,
-                  value: parseFloat(balance) * price
+                  value: parseFloat(balanceCalc.available) * price,
+                  stakedValue: parseFloat(balanceCalc.staked) * price
                 };
               }
               return null;
@@ -112,8 +149,8 @@ export const useTokenBalances = () => {
       const tokenBalances = await Promise.all(balancePromises);
       const validBalances = tokenBalances.filter(Boolean) as TokenBalance[];
 
-      // Combine native and token balances
-      const allBalances = [nativeBalance, ...validBalances].filter(b => parseFloat(b.balance) > 0);
+      // Combine native and token balances, show all tokens even with 0 balance
+      const allBalances = [nativeBalance, ...validBalances];
       
       setBalances(allBalances);
       setLastUpdated(new Date());
@@ -122,7 +159,7 @@ export const useTokenBalances = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [account, chainId, isConnected, ethBalance, getTokenBalance, getAvailableTokens]);
+  }, [account, chainId, isConnected, ethBalance, getTokenBalance, getAvailableTokens, calculateBalances]);
 
   const getBalance = useCallback((tokenSymbol: string): TokenBalance | null => {
     return balances.find(b => b.symbol === tokenSymbol) || null;
@@ -130,8 +167,24 @@ export const useTokenBalances = () => {
 
   const hasEnoughBalance = useCallback((tokenSymbol: string, requiredAmount: number): boolean => {
     const tokenBalance = getBalance(tokenSymbol);
-    return tokenBalance ? parseFloat(tokenBalance.balance) >= requiredAmount : false;
+    return tokenBalance ? parseFloat(tokenBalance.availableBalance) >= requiredAmount : false;
   }, [getBalance]);
+
+  const addStakedPosition = useCallback((symbol: string, amount: number, poolName: string) => {
+    setStakedPositions(prev => [...prev, { symbol, amount, poolName }]);
+  }, []);
+
+  const removeStakedPosition = useCallback((symbol: string, amount: number, poolName: string) => {
+    setStakedPositions(prev => 
+      prev.filter(pos => !(pos.symbol === symbol && pos.poolName === poolName && pos.amount === amount))
+    );
+  }, []);
+
+  const getStakedInPool = useCallback((symbol: string, poolName: string): number => {
+    return stakedPositions
+      .filter(pos => pos.symbol === symbol && pos.poolName === poolName)
+      .reduce((sum, pos) => sum + pos.amount, 0);
+  }, [stakedPositions]);
 
   const refreshBalances = useCallback(() => {
     fetchBalances();
@@ -149,12 +202,17 @@ export const useTokenBalances = () => {
 
   return {
     balances,
+    stakedPositions,
     isLoading,
     lastUpdated,
     getTokenBalance: getBalance,
     hasEnoughBalance,
+    addStakedPosition,
+    removeStakedPosition,
+    getStakedInPool,
     refreshBalances,
     totalValue: balances.reduce((sum, token) => sum + token.value, 0),
+    totalStakedValue: balances.reduce((sum, token) => sum + token.stakedValue, 0),
     availableTokens: getAvailableTokens().map(([symbol]) => symbol)
   };
 };
