@@ -84,10 +84,13 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
   const { hasEnoughBalance, addStakedPosition, removeStakedPosition } = useTokenBalances();
   const { toast } = useToast();
   const { opportunities: liveOpportunities, isScanning } = useArbitrageScanner();
-  const { pools: liveMiningPools } = useMiningPools();
+  const { pools: liveMiningPools = [] } = useMiningPools(); // Add default empty array
   const { aaveSupply, aaveWithdraw } = useDefiProtocols();
   
-  console.log('✅ PortfolioProvider hooks loaded successfully');
+  console.log('✅ PortfolioProvider hooks loaded successfully', { 
+    liveMiningPoolsCount: liveMiningPools?.length || 0,
+    liveOpportunitiesCount: liveOpportunities?.length || 0 
+  });
   
   const [totalValue, setTotalValue] = useState(125847.32);
   const [dailyChange, setDailyChange] = useState(5.67);
@@ -104,16 +107,16 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
 
   const [userStakes, setUserStakes] = useState<{[key: string]: {stake: number, earned: number, progress: number}}>({});
 
-  // Use live mining pools data and merge with user stakes
-  const miningPools = liveMiningPools.map(pool => ({
+  // Use live mining pools data and merge with user stakes - with safety check
+  const miningPools = (liveMiningPools || []).map(pool => ({
     ...pool,
     userStake: userStakes[pool.name]?.stake || 0,
     earned: userStakes[pool.name]?.earned || 0,
     progress: userStakes[pool.name]?.progress || 0
   }));
 
-  // Use live opportunities from scanner, fallback to empty array
-  const arbitrageOpportunities = liveOpportunities;
+  // Use live arbitrage opportunities data
+  const arbitrageOpportunities = liveOpportunities || [];
 
   const mintToken = (name: string, symbol: string, supply: string, standard: string) => {
     const newValue = parseFloat(supply) * 0.001; // Mock value calculation
