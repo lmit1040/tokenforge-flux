@@ -42,10 +42,10 @@ const Index = () => {
   }
 
   return (
-    <WalletProvider>
-      <PortfolioProvider>
-        <ExchangeProvider>
-          <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
+      <WalletProvider>
+        <PortfolioProvider>
+          <ExchangeProvider>
             <Header />
             
             <main className="container mx-auto px-4 py-8 space-y-8">
@@ -87,10 +87,10 @@ const Index = () => {
                 </div>
               </div>
             </main>
-          </div>
-        </ExchangeProvider>
-      </PortfolioProvider>
-    </WalletProvider>
+          </ExchangeProvider>
+        </PortfolioProvider>
+      </WalletProvider>
+    </div>
   );
 };
 
