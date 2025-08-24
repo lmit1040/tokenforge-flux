@@ -42,33 +42,50 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       window.ethereum.request({ method: 'eth_accounts' })
         .then((accounts: string[]) => {
           if (accounts.length > 0) {
+            console.log('🔗 Initial connection found:', accounts[0]);
             setAccount(accounts[0]);
             getChainId();
             getBalance(accounts[0]);
           }
         });
 
-      // Listen for account changes
-      window.ethereum.on('accountsChanged', (accounts: string[]) => {
-        console.log('🔄 Account changed:', accounts);
+      // Account change handler
+      const handleAccountsChanged = (accounts: string[]) => {
+        console.log('🔄 Account changed event:', accounts);
         if (accounts.length > 0) {
+          console.log('✅ Setting new account:', accounts[0]);
           setAccount(accounts[0]);
           getBalance(accounts[0]);
         } else {
+          console.log('❌ No accounts, disconnecting');
           setAccount(null);
           setBalance(null);
         }
-      });
+      };
 
-      // Listen for chain changes
-      window.ethereum.on('chainChanged', (chainId: string) => {
-        setChainId(parseInt(chainId, 16));
+      // Chain change handler
+      const handleChainChanged = (chainId: string) => {
+        console.log('🔄 Chain changed event:', chainId);
+        const newChainId = parseInt(chainId, 16);
+        setChainId(newChainId);
         if (account) {
           getBalance(account);
         }
-      });
+      };
+
+      // Add event listeners
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+
+      // Cleanup function
+      return () => {
+        if (window.ethereum) {
+          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+          window.ethereum.removeListener('chainChanged', handleChainChanged);
+        }
+      };
     }
-  }, [account]);
+  }, []); // Empty dependency array to run only once
 
   const getChainId = async () => {
     try {
