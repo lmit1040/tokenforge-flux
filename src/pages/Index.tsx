@@ -7,6 +7,7 @@ import { MiningSection } from "@/components/MiningSection";
 import { ArbitrageSection } from "@/components/ArbitrageSection";
 import { FlashLoansSection } from "@/components/FlashLoansSection";
 import { EnhancedArbitrager } from "@/components/EnhancedArbitrager";
+import { PriceMonitor } from "@/components/PriceMonitor";
 import { WalletConnection } from "@/components/WalletConnection";
 import { PortfolioProvider } from "@/contexts/PortfolioContext";
 import { ExchangeProvider } from "@/hooks/useExchanges";
@@ -62,17 +63,25 @@ const Index = () => {
             
             <ExchangePortfolioSection />
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <TokenMinting />
-              <MiningSection />
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              <div className="lg:col-span-3 space-y-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <TokenMinting />
+                  <MiningSection />
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <ArbitrageSection />
+                  <FlashLoansSection />
+                </div>
+                
+                <EnhancedArbitrager />
+              </div>
+              
+              <div className="space-y-8">
+                <PriceMonitor />
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <ArbitrageSection />
-              <FlashLoansSection />
-            </div>
-            
-            <EnhancedArbitrager />
           </main>
         </div>
       </ExchangeProvider>
