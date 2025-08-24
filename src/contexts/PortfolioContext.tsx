@@ -5,6 +5,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import { useArbitrageScanner } from '@/hooks/useArbitrageScanner';
 import { useMiningPools } from '@/hooks/useMiningPools';
+import { useTokenBalances } from '@/hooks/useTokenBalances';
 
 export interface Position {
   symbol: string;
@@ -67,8 +68,9 @@ export const usePortfolio = () => {
 
 export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { prices } = usePriceFeeds();
-  const { deployToken, executeArbitrage: executeBlockchainArbitrage, executeFlashLoan: executeBlockchainFlashLoan, isConnected } = useBlockchain();
+  const { deployToken, executeArbitrage: executeBlockchainArbitrage, executeFlashLoan: executeBlockchainFlashLoan, executeStaking, isConnected } = useBlockchain();
   const { account } = useWallet();
+  const { hasEnoughBalance } = useTokenBalances();
   const { toast } = useToast();
   const { opportunities: liveOpportunities, isScanning } = useArbitrageScanner();
   const { pools: liveMiningPools } = useMiningPools();
@@ -118,30 +120,62 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     });
   };
 
-  const stakeInPool = (poolIndex: number, amount: number, token: string = 'USDC') => {
+  const stakeInPool = async (poolIndex: number, amount: number, token: string = 'USDC') => {
     const poolName = miningPools[poolIndex].name;
     
-    // In a real implementation, we would:
-    // 1. Call blockchain.approveToken() for the staking contract
-    // 2. Call the actual staking contract function
-    // 3. Wait for transaction confirmation
-    // 4. Update local state only after success
-    
-    setUserStakes(prev => ({
-      ...prev,
-      [poolName]: {
-        stake: (prev[poolName]?.stake || 0) + amount,
-        earned: prev[poolName]?.earned || 0,
-        progress: Math.min((prev[poolName]?.progress || 0) + 10, 100)
+    // Check wallet connection
+    if (!isConnected) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet to stake tokens",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Check balance
+    if (!hasEnoughBalance(token, amount)) {
+      toast({
+        title: "Insufficient balance",
+        description: `You don't have enough ${token} to stake`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Mock contract addresses - in production these would be real addresses
+      const tokenAddress = `0x${'A'.repeat(40)}`;
+      const stakingContractAddress = `0x${'B'.repeat(40)}`;
+      
+      // Execute real staking transaction
+      const result = await executeStaking(
+        poolName,
+        tokenAddress,
+        amount.toString(),
+        stakingContractAddress
+      );
+
+      if (result && result.status === 'confirmed') {
+        // Only update local state after successful blockchain transaction
+        setUserStakes(prev => ({
+          ...prev,
+          [poolName]: {
+            stake: (prev[poolName]?.stake || 0) + amount,
+            earned: prev[poolName]?.earned || 0,
+            progress: Math.min((prev[poolName]?.progress || 0) + 10, 100)
+          }
+        }));
+        
+        setTotalValue(prev => prev + amount);
       }
-    }));
-    
-    setTotalValue(prev => prev + amount);
-    
-    toast({
-      title: "Stake Added Successfully!",
-      description: `${amount.toLocaleString()} ${token} staked in ${poolName}`,
-    });
+    } catch (error: any) {
+      toast({
+        title: "Staking failed",
+        description: error.message || "Failed to execute staking transaction",
+        variant: "destructive"
+      });
+    }
   };
 
   const harvestRewards = (poolIndex: number) => {

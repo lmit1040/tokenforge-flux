@@ -14,8 +14,19 @@ interface TransactionResult {
   status: 'pending' | 'confirmed' | 'failed';
 }
 
+interface StakingTransaction {
+  poolName: string;
+  amount: number;
+  token: string;
+  status: 'approving' | 'staking' | 'confirmed' | 'failed';
+  approvalTx?: string;
+  stakingTx?: string;
+  error?: string;
+}
+
 export const useBlockchain = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingTransactions, setPendingTransactions] = useState<{[key: string]: StakingTransaction}>({});
   const { account, chainId } = useWallet();
   const { toast } = useToast();
 
@@ -241,6 +252,122 @@ export const useBlockchain = () => {
     }
   }, [account, sendTransaction, toast]);
 
+  const executeStaking = useCallback(async (
+    poolName: string, 
+    tokenAddress: string, 
+    amount: string, 
+    stakingContractAddress: string
+  ): Promise<StakingTransaction | null> => {
+    if (!account || !window.ethereum) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet to stake tokens",
+        variant: "destructive"
+      });
+      return null;
+    }
+
+    const transactionId = `${poolName}-${Date.now()}`;
+    const stakingTx: StakingTransaction = {
+      poolName,
+      amount: parseFloat(amount),
+      token: tokenAddress,
+      status: 'approving'
+    };
+
+    setPendingTransactions(prev => ({ ...prev, [transactionId]: stakingTx }));
+
+    try {
+      // Step 1: Approve token spending
+      toast({
+        title: "Approving tokens...",
+        description: "Please confirm the approval transaction in your wallet",
+      });
+
+      const approvalTx = await approveToken(tokenAddress, stakingContractAddress, amount);
+      
+      if (!approvalTx) {
+        setPendingTransactions(prev => ({
+          ...prev,
+          [transactionId]: { ...prev[transactionId], status: 'failed', error: 'Approval failed' }
+        }));
+        return null;
+      }
+
+      // Update with approval hash
+      setPendingTransactions(prev => ({
+        ...prev,
+        [transactionId]: { ...prev[transactionId], approvalTx, status: 'staking' }
+      }));
+
+      toast({
+        title: "Approval confirmed",
+        description: "Now initiating staking transaction...",
+      });
+
+      // Step 2: Execute staking
+      // Mock staking contract call data
+      const stakingData = `0x${Math.random().toString(16).slice(2, 66)}`;
+      
+      const result = await sendTransaction(
+        stakingContractAddress,
+        '0', // No ETH value for token staking
+        stakingData
+      );
+
+      if (result) {
+        setPendingTransactions(prev => ({
+          ...prev,
+          [transactionId]: { 
+            ...prev[transactionId], 
+            stakingTx: result.hash, 
+            status: 'confirmed' 
+          }
+        }));
+
+        toast({
+          title: "Staking successful!",
+          description: `Successfully staked ${amount} tokens in ${poolName}`,
+        });
+
+        return { ...stakingTx, approvalTx, stakingTx: result.hash, status: 'confirmed' };
+      } else {
+        throw new Error('Staking transaction failed');
+      }
+
+    } catch (error: any) {
+      const errorMessage = error.message || 'Unknown error occurred';
+      
+      setPendingTransactions(prev => ({
+        ...prev,
+        [transactionId]: { 
+          ...prev[transactionId], 
+          status: 'failed', 
+          error: errorMessage 
+        }
+      }));
+
+      toast({
+        title: "Staking failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+
+      return null;
+    }
+  }, [account, approveToken, sendTransaction, toast]);
+
+  const getTransactionStatus = useCallback((transactionId: string) => {
+    return pendingTransactions[transactionId] || null;
+  }, [pendingTransactions]);
+
+  const clearTransaction = useCallback((transactionId: string) => {
+    setPendingTransactions(prev => {
+      const { [transactionId]: removed, ...rest } = prev;
+      return rest;
+    });
+  }, []);
+
   return {
     isLoading,
     deployToken,
@@ -249,6 +376,10 @@ export const useBlockchain = () => {
     approveToken,
     executeArbitrage,
     executeFlashLoan,
+    executeStaking,
+    pendingTransactions,
+    getTransactionStatus,
+    clearTransaction,
     isConnected: !!account,
     currentChain: chainId
   };

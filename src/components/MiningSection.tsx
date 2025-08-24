@@ -7,13 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Pickaxe, TrendingUp, Clock, Zap, Wallet, AlertTriangle } from "lucide-react";
 import { usePortfolio } from "@/contexts/PortfolioContext";
 import { useTokenBalances } from "@/hooks/useTokenBalances";
+import { useBlockchain } from "@/hooks/useBlockchain";
 import { useWallet } from "@/hooks/useWallet";
+import { TransactionStatus } from "@/components/TransactionStatus";
 import { useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 
 export const MiningSection = () => {
   const { miningPools, stakeInPool, harvestRewards } = usePortfolio();
   const { balances, hasEnoughBalance, getTokenBalance, isLoading: balancesLoading } = useTokenBalances();
+  const { pendingTransactions, clearTransaction } = useBlockchain();
   const { isConnected } = useWallet();
   const [stakeAmounts, setStakeAmounts] = useState<{ [key: number]: string }>({});
   const [selectedTokens, setSelectedTokens] = useState<{ [key: number]: string }>({});
@@ -90,6 +93,14 @@ export const MiningSection = () => {
         </CardHeader>
         
         <CardContent className="space-y-6">
+          {/* Transaction Status */}
+          {Object.keys(pendingTransactions).length > 0 && (
+            <TransactionStatus 
+              transactions={pendingTransactions} 
+              onClear={clearTransaction} 
+            />
+          )}
+          
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-2xl font-bold text-accent">${(totalStaked / 1000).toFixed(1)}K</div>
