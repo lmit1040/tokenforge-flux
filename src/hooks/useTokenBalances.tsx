@@ -190,15 +190,18 @@ export const useTokenBalances = () => {
     fetchBalances();
   }, [fetchBalances]);
 
-  // Auto-refresh balances when wallet connects or chain changes
+  // Auto-refresh balances when wallet connects, account changes, or chain changes
   useEffect(() => {
-    if (isConnected) {
+    if (isConnected && account) {
       fetchBalances();
       // Refresh every 30 seconds
       const interval = setInterval(fetchBalances, 30000);
       return () => clearInterval(interval);
+    } else {
+      // Clear balances when disconnected
+      setBalances([]);
     }
-  }, [isConnected, fetchBalances]);
+  }, [isConnected, account, chainId, fetchBalances]);
 
   return {
     balances,
