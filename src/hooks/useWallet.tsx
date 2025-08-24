@@ -164,8 +164,16 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Set up event listeners
     console.log('📡 Setting up MetaMask event listeners');
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
-    window.ethereum.on('chainChanged', handleChainChanged);
+    
+    // Use both event names for better compatibility
+    const chainChangeHandler = (chainId: string) => handleChainChanged(chainId);
+    const accountChangeHandler = (accounts: string[]) => handleAccountsChanged(accounts);
+    
+    window.ethereum.on('accountsChanged', accountChangeHandler);
+    window.ethereum.on('chainChanged', chainChangeHandler);
+    
+    // Also listen for networkChanged (legacy)
+    window.ethereum.on('networkChanged', chainChangeHandler);
 
     // Initialize
     checkInitialConnection();
@@ -176,8 +184,13 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       isActive = false;
       
       if (window.ethereum?.removeListener) {
-        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        window.ethereum.removeListener('accountsChanged', accountChangeHandler);
+        window.ethereum.removeListener('chainChanged', chainChangeHandler);
+        window.ethereum.removeListener('networkChanged', chainChangeHandler);
+      } else if (window.ethereum?.off) {
+        window.ethereum.off('accountsChanged', accountChangeHandler);
+        window.ethereum.off('chainChanged', chainChangeHandler);
+        window.ethereum.off('networkChanged', chainChangeHandler);
       }
     };
   }, []); // Empty deps - only run once
