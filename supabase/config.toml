@@ -64,3 +64,6 @@ verify_jwt = false
 
 [functions.flash-loan-execute]
 verify_jwt = false
+
+[functions.mining-pools]
+verify_jwt = false

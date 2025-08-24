@@ -4,6 +4,7 @@ import { useBlockchain } from '@/hooks/useBlockchain';
 import { useWallet } from '@/hooks/useWallet';
 import { useToast } from '@/hooks/use-toast';
 import { useArbitrageScanner } from '@/hooks/useArbitrageScanner';
+import { useMiningPools } from '@/hooks/useMiningPools';
 
 export interface Position {
   symbol: string;
@@ -70,6 +71,7 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
   const { account } = useWallet();
   const { toast } = useToast();
   const { opportunities: liveOpportunities, isScanning } = useArbitrageScanner();
+  const { pools: liveMiningPools } = useMiningPools();
   
   const [totalValue, setTotalValue] = useState(125847.32);
   const [dailyChange, setDailyChange] = useState(5.67);
@@ -84,35 +86,15 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     { symbol: "LINK", balance: 1250, value: 13193.11, change: -2.1 }
   ]);
 
-  const [miningPools, setMiningPools] = useState<MiningPool[]>([
-    {
-      name: "ETH/USDC LP",
-      apy: 24.5,
-      tvl: 125000000,
-      rewards: ["ETH", "USDC", "COMP"],
-      userStake: 15000,
-      earned: 247.89,
-      progress: 68
-    },
-    {
-      name: "LINK Staking",
-      apy: 18.2,
-      tvl: 89000000,
-      rewards: ["LINK"],
-      userStake: 8500,
-      earned: 156.32,
-      progress: 45
-    },
-    {
-      name: "Yield Farming",
-      apy: 31.8,
-      tvl: 45000000,
-      rewards: ["FARM", "ETH"],
-      userStake: 5200,
-      earned: 89.45,
-      progress: 23
-    }
-  ]);
+  const [userStakes, setUserStakes] = useState<{[key: string]: {stake: number, earned: number, progress: number}}>({});
+
+  // Use live mining pools data and merge with user stakes
+  const miningPools = liveMiningPools.map(pool => ({
+    ...pool,
+    userStake: userStakes[pool.name]?.stake || 0,
+    earned: userStakes[pool.name]?.earned || 0,
+    progress: userStakes[pool.name]?.progress || 0
+  }));
 
   // Use live opportunities from scanner, fallback to empty array
   const arbitrageOpportunities = liveOpportunities;
@@ -137,34 +119,45 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
   };
 
   const stakeInPool = (poolIndex: number, amount: number) => {
-    setMiningPools(prev => prev.map((pool, i) => 
-      i === poolIndex 
-        ? { ...pool, userStake: pool.userStake + amount, progress: Math.min(pool.progress + 10, 100) }
-        : pool
-    ));
+    const poolName = miningPools[poolIndex].name;
+    
+    setUserStakes(prev => ({
+      ...prev,
+      [poolName]: {
+        stake: (prev[poolName]?.stake || 0) + amount,
+        earned: prev[poolName]?.earned || 0,
+        progress: Math.min((prev[poolName]?.progress || 0) + 10, 100)
+      }
+    }));
     
     setTotalValue(prev => prev + amount);
     
     toast({
       title: "Stake Added Successfully!",
-      description: `$${amount.toLocaleString()} staked in ${miningPools[poolIndex].name}`,
+      description: `$${amount.toLocaleString()} staked in ${poolName}`,
     });
   };
 
   const harvestRewards = (poolIndex: number) => {
     const pool = miningPools[poolIndex];
     const earned = pool.earned;
+    const poolName = pool.name;
     
-    setMiningPools(prev => prev.map((p, i) => 
-      i === poolIndex ? { ...p, earned: 0, progress: 0 } : p
-    ));
+    setUserStakes(prev => ({
+      ...prev,
+      [poolName]: {
+        stake: prev[poolName]?.stake || 0,
+        earned: 0,
+        progress: 0
+      }
+    }));
     
     setYieldEarned(prev => prev + earned);
     setTotalValue(prev => prev + earned);
     
     toast({
       title: "Rewards Harvested!",
-      description: `$${earned.toFixed(2)} in rewards claimed from ${pool.name}`,
+      description: `$${earned.toFixed(2)} in rewards claimed from ${poolName}`,
     });
   };
 
