@@ -39,87 +39,103 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log('🚀 WalletProvider useEffect triggered');
     
-    const checkMetaMask = async () => {
-      if (typeof window !== "undefined" && window.ethereum) {
-        console.log('🔗 Ethereum object found, checking connection...');
+    if (typeof window === "undefined" || !window.ethereum) {
+      console.log('❌ No ethereum object found');
+      return;
+    }
+
+    let mounted = true;
+    
+    const initializeWallet = async () => {
+      try {
+        console.log('🔗 Initializing wallet connection...');
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        console.log('🔍 Initial accounts check:', accounts);
         
-        try {
-          // Check if already connected
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-          console.log('🔍 Initial accounts check:', accounts);
-          
-          if (accounts.length > 0) {
-            console.log('🔗 Initial connection found:', accounts[0]);
-            setAccount(accounts[0]);
-            await getChainId();
-            await getBalance(accounts[0]);
-          }
-        } catch (error) {
-          console.error('❌ Error checking initial accounts:', error);
+        if (accounts.length > 0 && mounted) {
+          console.log('🔗 Setting initial account:', accounts[0]);
+          setAccount(accounts[0]);
+          await getChainId();
+          await getBalance(accounts[0]);
         }
-      } else {
-        console.log('❌ No ethereum object found');
+      } catch (error) {
+        console.error('❌ Error initializing wallet:', error);
       }
     };
 
-    checkMetaMask();
+    const handleAccountsChanged = async (accounts: string[]) => {
+      console.log('🔄 ACCOUNTS CHANGED EVENT:', accounts);
+      
+      if (!mounted) return;
+      
+      if (accounts.length > 0) {
+        console.log('✅ New account detected:', accounts[0]);
+        setAccount(accounts[0]);
+        await getBalance(accounts[0]);
+      } else {
+        console.log('❌ No accounts - disconnecting');
+        setAccount(null);
+        setBalance(null);
+      }
+    };
 
-    // Set up event listeners if MetaMask is available
-    if (typeof window !== "undefined" && window.ethereum) {
-      const handleAccountsChanged = (accounts: string[]) => {
-        console.log('🔄🔄 ACCOUNT CHANGED EVENT FIRED:', accounts);
-        console.log('🔄 Previous account was:', account);
+    const handleChainChanged = async (chainId: string) => {
+      console.log('🔄 CHAIN CHANGED EVENT:', chainId);
+      
+      if (!mounted) return;
+      
+      const newChainId = parseInt(chainId, 16);
+      console.log('🔄 Setting new chain ID:', newChainId);
+      setChainId(newChainId);
+      
+      if (account) {
+        await getBalance(account);
+      }
+    };
+
+    // Initialize wallet
+    initializeWallet();
+
+    // Set up event listeners
+    console.log('📡 Setting up MetaMask event listeners...');
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    window.ethereum.on('chainChanged', handleChainChanged);
+
+    // Manual polling as backup since MetaMask events can be unreliable
+    const pollForAccountChanges = async () => {
+      if (!mounted) return;
+      
+      try {
+        const currentAccounts = await window.ethereum.request({ method: 'eth_accounts' });
         
-        if (accounts.length > 0) {
-          console.log('✅ Setting new account:', accounts[0]);
-          setAccount(accounts[0]);
-          getBalance(accounts[0]);
-        } else {
-          console.log('❌ No accounts, disconnecting');
-          setAccount(null);
-          setBalance(null);
-        }
-      };
-
-      const handleChainChanged = (chainId: string) => {
-        console.log('🔄🔄 CHAIN CHANGED EVENT FIRED:', chainId);
-        const newChainId = parseInt(chainId, 16);
-        console.log('🔄 New chain ID:', newChainId);
-        setChainId(newChainId);
-        if (account) {
-          getBalance(account);
-        }
-      };
-
-      console.log('📡 Adding MetaMask event listeners...');
-      window.ethereum.on('accountsChanged', handleAccountsChanged);
-      window.ethereum.on('chainChanged', handleChainChanged);
-      console.log('✅ Event listeners added');
-
-      // Manual polling as backup (MetaMask events sometimes fail)
-      const pollForChanges = async () => {
-        try {
-          const currentAccounts = await window.ethereum.request({ method: 'eth_accounts' });
-          if (currentAccounts.length > 0 && currentAccounts[0] !== account) {
-            console.log('🔄 Manual poll detected account change:', currentAccounts[0]);
+        if (currentAccounts.length > 0) {
+          const currentAccount = currentAccounts[0];
+          
+          if (currentAccount !== account) {
+            console.log('🔄 Polling detected account change from:', account, 'to:', currentAccount);
             handleAccountsChanged(currentAccounts);
           }
-        } catch (error) {
-          // Ignore polling errors
+        } else if (account !== null) {
+          console.log('🔄 Polling detected account disconnection');
+          handleAccountsChanged([]);
         }
-      };
+      } catch (error) {
+        console.error('❌ Error polling for account changes:', error);
+      }
+    };
 
-      const pollInterval = setInterval(pollForChanges, 1000);
+    const pollInterval = setInterval(pollForAccountChanges, 2000);
 
-      return () => {
-        console.log('🧹 Cleaning up wallet event listeners');
-        clearInterval(pollInterval);
-        if (window.ethereum && window.ethereum.removeListener) {
-          window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-          window.ethereum.removeListener('chainChanged', handleChainChanged);
-        }
-      };
-    }
+    return () => {
+      console.log('🧹 Cleaning up wallet listeners');
+      mounted = false;
+      clearInterval(pollInterval);
+      
+      if (window.ethereum?.removeListener) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
   }, []); // Empty dependency array
 
   const getChainId = async () => {

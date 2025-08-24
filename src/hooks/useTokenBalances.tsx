@@ -197,23 +197,37 @@ export const useTokenBalances = () => {
   }, [stakedPositions]);
 
   const refreshBalances = useCallback(() => {
+    console.log('🔄 Manual refresh triggered');
     fetchBalances();
   }, [fetchBalances]);
 
   // Auto-refresh balances when wallet connects, account changes, or chain changes
   useEffect(() => {
+    let isMounted = true;
     console.log('🔄 useEffect triggered with:', { isConnected, account, chainId, ethBalance });
-    if (isConnected && account) {
+    
+    if (isConnected && account && isMounted) {
       fetchBalances();
       // Refresh every 30 seconds
-      const interval = setInterval(fetchBalances, 30000);
-      return () => clearInterval(interval);
+      const interval = setInterval(() => {
+        if (isMounted) {
+          fetchBalances();
+        }
+      }, 30000);
+      return () => {
+        isMounted = false;
+        clearInterval(interval);
+      };
     } else {
       // Clear balances when disconnected
       console.log('🧹 Clearing balances - wallet disconnected');
       setBalances([]);
     }
-  }, [isConnected, account, chainId, ethBalance]); // Removed fetchBalances to prevent infinite loop
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [isConnected, account, chainId]); // Removed ethBalance and fetchBalances
 
   return {
     balances,
