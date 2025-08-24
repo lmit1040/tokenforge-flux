@@ -132,34 +132,20 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     // Chain change handler
-    const handleChainChanged = async (chainId: string) => {
+    const handleChainChanged = (chainId: string) => {
       if (!isActive) return;
 
       console.log('🔄 Chain changed to:', chainId);
       const newChainId = parseInt(chainId, 16);
       console.log('🌐 New chain ID parsed:', newChainId);
-      
+
       // Update chain ID first
       setChainId(newChainId);
 
-      // Refresh account and balance for the new chain
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-          const currentAccount = accounts[0];
-          console.log('🔄 Refreshing balance for account after chain change:', currentAccount);
-          // Update account in case it's not in sync
-          setAccount(currentAccount);
-          await getBalance(currentAccount);
-          
-          toast({
-            title: "Network switched",
-            description: `Switched to ${SUPPORTED_NETWORKS[newChainId as keyof typeof SUPPORTED_NETWORKS]?.name || `Chain ${newChainId}`}`,
-          });
-        }
-      } catch (error) {
-        console.error('❌ Error updating account after chain change:', error);
-      }
+      toast({
+        title: "Network switched",
+        description: `Switched to ${SUPPORTED_NETWORKS[newChainId as keyof typeof SUPPORTED_NETWORKS]?.name || `Chain ${newChainId}`}`,
+      });
     };
 
     // Set up event listeners
@@ -218,6 +204,29 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('❌ Error getting balance:', error);
     }
   };
+
+  // Refresh account and balance whenever the network changes
+  useEffect(() => {
+    if (!chainId || !window.ethereum) return;
+
+    const refreshAccountData = async () => {
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (accounts.length > 0) {
+          const currentAccount = accounts[0];
+          setAccount(currentAccount);
+          await getBalance(currentAccount);
+        } else {
+          setAccount(null);
+          setBalance(null);
+        }
+      } catch (error) {
+        console.error('❌ Error refreshing account data:', error);
+      }
+    };
+
+    refreshAccountData();
+  }, [chainId]);
 
   const connectWallet = async () => {
     if (!window.ethereum) {
