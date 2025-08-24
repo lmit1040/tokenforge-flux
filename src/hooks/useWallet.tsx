@@ -55,18 +55,43 @@ export const WalletProvider = ({ children }: { children: React.ReactNode }) => {
         if (accounts.length > 0 && isActive) {
           const initialAccount = accounts[0];
           console.log('🔗 Found existing account:', initialAccount);
-          setAccount(initialAccount);
           
-          // Get chain ID and balance
+          // Get chain ID first
           const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-          setChainId(parseInt(chainId, 16));
+          const parsedChainId = parseInt(chainId, 16);
           
-          const balance = await window.ethereum.request({
-            method: 'eth_getBalance',
-            params: [initialAccount, 'latest']
-          });
-          const balanceInEth = (parseInt(balance, 16) / Math.pow(10, 18)).toFixed(4);
-          setBalance(balanceInEth);
+          console.log('🌐 Chain ID:', parsedChainId);
+          
+          // Set account and chain simultaneously
+          setAccount(initialAccount);
+          setChainId(parsedChainId);
+          
+          // Get balance with retry logic
+          try {
+            const balance = await window.ethereum.request({
+              method: 'eth_getBalance',
+              params: [initialAccount, 'latest']
+            });
+            const balanceInEth = (parseInt(balance, 16) / Math.pow(10, 18)).toFixed(4);
+            console.log('💰 Initial balance:', balanceInEth, 'ETH');
+            setBalance(balanceInEth);
+          } catch (balanceError) {
+            console.error('❌ Error getting initial balance:', balanceError);
+            // Retry after a short delay
+            setTimeout(async () => {
+              try {
+                const retryBalance = await window.ethereum.request({
+                  method: 'eth_getBalance',
+                  params: [initialAccount, 'latest']
+                });
+                const retryBalanceInEth = (parseInt(retryBalance, 16) / Math.pow(10, 18)).toFixed(4);
+                console.log('💰 Retry balance:', retryBalanceInEth, 'ETH');
+                setBalance(retryBalanceInEth);
+              } catch (retryError) {
+                console.error('❌ Retry balance failed:', retryError);
+              }
+            }, 1000);
+          }
         }
       } catch (error) {
         console.error('❌ Error checking initial connection:', error);

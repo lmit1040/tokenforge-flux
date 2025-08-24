@@ -203,7 +203,7 @@ export const useTokenBalances = () => {
 
   // Simple effect that only triggers on account/chain changes with debounce
   useEffect(() => {
-    console.log('🔄 Token balances effect triggered:', { isConnected, account, chainId });
+    console.log('🔄 Token balances effect triggered:', { isConnected, account, chainId, ethBalance });
     
     if (!isConnected || !account) {
       console.log('🧹 Clearing balances');
@@ -212,15 +212,15 @@ export const useTokenBalances = () => {
       return;
     }
 
-    if (chainId) {
-      // Add debounce to prevent rapid successive calls
+    if (chainId && ethBalance !== null) {
+      // Only fetch when we have all required data including ethBalance
       const timeoutId = setTimeout(() => {
         fetchBalances();
-      }, 200);
+      }, 300);
       
       return () => clearTimeout(timeoutId);
     }
-  }, [account, chainId]); // Only depend on account and chainId
+  }, [account, chainId, ethBalance]); // Include ethBalance in dependencies
 
   return {
     balances,
